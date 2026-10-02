@@ -73,9 +73,16 @@ class CycloneImageModel(nn.Module):
     Dual-head: continuous wind intensity (knots) and pattern category logits (5 classes).
     """
 
-    def __init__(self, in_channels: int = 2, embedding_dim: int = 128, num_classes: int = 5):
+    def __init__(
+        self,
+        in_channels: int = 2,
+        embedding_dim: int = 128,
+        num_classes: int = 5,
+        image_channels: Optional[int] = None,
+    ):
         super().__init__()
-        self.encoder = CycloneImageEncoder(in_channels=in_channels, embedding_dim=embedding_dim)
+        actual_channels = image_channels if image_channels is not None else in_channels
+        self.encoder = CycloneImageEncoder(in_channels=actual_channels, embedding_dim=embedding_dim)
         self.intensity_head = nn.Sequential(
             nn.Linear(embedding_dim, 64),
             nn.SiLU(inplace=True),

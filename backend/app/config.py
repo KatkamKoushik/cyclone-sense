@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     BASE_DIR: Path = Path(__file__).resolve().parent.parent
     DATA_RAW_DIR: Path = BASE_DIR / "data" / "raw"
     DATA_PROCESSED_DIR: Path = BASE_DIR / "data" / "processed"
+    MODEL_CHECKPOINT_DIR: Path = BASE_DIR / "models" / "checkpoints"
     
     # External Satellite Services Authentication (Real credentials, no fake data)
     NASA_EARTHDATA_USERNAME: Optional[str] = None

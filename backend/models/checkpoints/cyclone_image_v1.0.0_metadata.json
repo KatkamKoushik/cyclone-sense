@@ -2,7 +2,7 @@
   "model_name": "cyclone_image",
   "version": "1.0.0",
   "weights_filename": "cyclone_image_v1.0.0.pt",
-  "weights_sha256": "cee2dfd32127b0efdb329e9391da351c6a7bf7c0978f97b98d15bc4d537a8c12",
+  "weights_sha256": "6692cf0b3800164e9a99a008d0556b8d6b553b925e2e8791f8bb2bded1e7023e",
   "file_size_bytes": 7481746,
   "config": {
     "model_type": "image",
@@ -69,20 +69,20 @@
     "total_samples_evaluated": 1285,
     "intensity_metrics": {
       "sample_count": 1285,
-      "mae_kts": 2.249,
-      "rmse_kts": 3.72,
-      "bias_kts": 1.944,
+      "mae_kts": 1.736,
+      "rmse_kts": 2.395,
+      "bias_kts": 1.62,
       "pearson_r": 0.999
     },
     "classification_metrics": {
       "sample_count": 1285,
-      "accuracy": 0.9253,
-      "precision_macro": 0.7164,
-      "recall_macro": 0.7473,
-      "f1_macro": 0.7232,
-      "f1_weighted": 0.9127
+      "accuracy": 0.9206,
+      "precision_macro": 0.7102,
+      "recall_macro": 0.7368,
+      "f1_macro": 0.7121,
+      "f1_weighted": 0.9082
     }
   },
-  "saved_at_utc": "2026-10-02T08:34:25.585611+00:00",
+  "saved_at_utc": "2026-10-02T08:49:06.557655+00:00",
   "software_version": "0.1.0"
 }

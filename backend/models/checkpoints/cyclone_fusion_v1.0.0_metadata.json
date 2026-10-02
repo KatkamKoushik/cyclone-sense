@@ -2,7 +2,7 @@
   "model_name": "cyclone_fusion",
   "version": "1.0.0",
   "weights_filename": "cyclone_fusion_v1.0.0.pt",
-  "weights_sha256": "b5be24bc2e5b5e8bdea411e6d8007d7a16d2dcb2f0c9aec57ca49ac272bde839",
+  "weights_sha256": "365b50788b6e9a247d85a7c1a95526eb89aeecb97e2db39f26cbb25fbc396b16",
   "file_size_bytes": 8136503,
   "config": {
     "model_type": "fusion",
@@ -69,20 +69,20 @@
     "total_samples_evaluated": 1285,
     "intensity_metrics": {
       "sample_count": 1285,
-      "mae_kts": 3.48,
-      "rmse_kts": 9.098,
-      "bias_kts": -1.244,
+      "mae_kts": 3.321,
+      "rmse_kts": 9.886,
+      "bias_kts": -2.749,
       "pearson_r": 0.96
     },
     "classification_metrics": {
       "sample_count": 1285,
-      "accuracy": 0.951,
-      "precision_macro": 0.7295,
-      "recall_macro": 0.7579,
-      "f1_macro": 0.7359,
-      "f1_weighted": 0.9376
+      "accuracy": 0.9268,
+      "precision_macro": 0.7171,
+      "recall_macro": 0.7392,
+      "f1_macro": 0.719,
+      "f1_weighted": 0.9134
     }
   },
-  "saved_at_utc": "2026-10-02T08:36:31.265793+00:00",
+  "saved_at_utc": "2026-10-02T08:50:53.936320+00:00",
   "software_version": "0.1.0"
 }

@@ -42,3 +42,8 @@ frontend/out/
 .env
 .env.local
 .env.*.local
+
+# Binaries & local tools
+tools/
+*.pdb
+*.exe

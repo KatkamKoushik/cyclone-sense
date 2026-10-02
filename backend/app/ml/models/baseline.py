@@ -70,6 +70,17 @@ class BaselineClimatologyPersistenceModel:
 
         return pred_intensity, pred_category
 
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        """
+        Returns softmax-normalized multiclass probability estimates derived from Ridge classification logits.
+        """
+        if not self.is_fitted or self.weights_cat is None:
+            raise RuntimeError("Model must be fitted before predict_proba() is called.")
+        X_norm = (X - self.mean_x) / self.std_x
+        cat_logits = X_norm @ self.weights_cat + self.bias_cat
+        exp_logits = np.exp(cat_logits - np.max(cat_logits, axis=-1, keepdims=True))
+        return exp_logits / np.sum(exp_logits, axis=-1, keepdims=True)
+
     def get_feature_importances(self, feature_names: List[str]) -> Dict[str, float]:
         """Returns normalized absolute weight magnitudes for environmental covariates."""
         if not self.is_fitted or self.weights_intensity is None:

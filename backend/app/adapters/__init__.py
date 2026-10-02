@@ -6,6 +6,7 @@ from backend.app.adapters.base import (
 from backend.app.adapters.ibtracs import IBTrACSAdapter
 from backend.app.adapters.goes import GOESAdapter
 from backend.app.adapters.insat import INSATAdapter
+from backend.app.adapters.nasa import NASAAdapter
 
 __all__ = [
     "BaseSatelliteAdapter",
@@ -14,4 +15,5 @@ __all__ = [
     "IBTrACSAdapter",
     "GOESAdapter",
     "INSATAdapter",
+    "NASAAdapter",
 ]

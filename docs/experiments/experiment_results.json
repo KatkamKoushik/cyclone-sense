@@ -1,5 +1,5 @@
 {
-  "timestamp_utc": "2026-10-02T08:32:53.067664+00:00",
+  "timestamp_utc": "2026-10-02T08:47:57.662686+00:00",
   "dataset": {
     "source": "D:\\CycloneSense\\backend\\data\\raw\\IBTrACS.NI.v04r01.nc",
     "total_observations": 7229,
@@ -106,34 +106,34 @@
         "version": "1.0.0",
         "model_type": "environment",
         "epochs_completed": 4,
-        "elapsed_seconds": 13.73,
-        "best_val_mae_kts": 10.651,
+        "elapsed_seconds": 5.27,
+        "best_val_mae_kts": 10.734,
         "checkpoint_path": "D:\\CycloneSense\\backend\\models\\checkpoints\\cyclone_env_v1.0.0.pt",
-        "checkpoint_sha256": "e3b688aef1471fd07657fee604c7cccd0f7f920dc06c525674e19c2472e85bcd",
+        "checkpoint_sha256": "1f6fa3f9c28d73c26ea5dc7f16dae3ae483e7720a7e80fc697df8518202d22ec",
         "training_history": [
           {
             "epoch": 1,
-            "train_loss": 29.5505,
-            "val_mae_kts": 20.504,
+            "train_loss": 29.8059,
+            "val_mae_kts": 20.666,
             "val_accuracy": 0.4856
           },
           {
             "epoch": 2,
-            "train_loss": 10.9534,
-            "val_mae_kts": 13.568,
-            "val_accuracy": 0.6117
+            "train_loss": 11.3749,
+            "val_mae_kts": 13.954,
+            "val_accuracy": 0.5922
           },
           {
             "epoch": 3,
-            "train_loss": 6.222,
-            "val_mae_kts": 10.915,
-            "val_accuracy": 0.6506
+            "train_loss": 6.4147,
+            "val_mae_kts": 11.005,
+            "val_accuracy": 0.6148
           },
           {
             "epoch": 4,
-            "train_loss": 4.9958,
-            "val_mae_kts": 10.651,
-            "val_accuracy": 0.642
+            "train_loss": 5.1766,
+            "val_mae_kts": 10.734,
+            "val_accuracy": 0.6156
           }
         ]
       },
@@ -142,18 +142,18 @@
         "total_samples_evaluated": 971,
         "intensity_metrics": {
           "sample_count": 971,
-          "mae_kts": 9.926,
-          "rmse_kts": 14.156,
-          "bias_kts": -3.65,
-          "pearson_r": 0.84
+          "mae_kts": 9.993,
+          "rmse_kts": 14.317,
+          "bias_kts": -3.784,
+          "pearson_r": 0.837
         },
         "classification_metrics": {
           "sample_count": 971,
-          "accuracy": 0.6241,
-          "precision_macro": 0.3325,
-          "recall_macro": 0.338,
-          "f1_macro": 0.3331,
-          "f1_weighted": 0.6042
+          "accuracy": 0.6303,
+          "precision_macro": 0.3128,
+          "recall_macro": 0.3209,
+          "f1_macro": 0.3135,
+          "f1_weighted": 0.6008
         }
       }
     },
@@ -163,28 +163,28 @@
         "version": "1.0.0",
         "model_type": "image",
         "epochs_completed": 3,
-        "elapsed_seconds": 75.72,
-        "best_val_mae_kts": 2.249,
+        "elapsed_seconds": 62.44,
+        "best_val_mae_kts": 1.736,
         "checkpoint_path": "D:\\CycloneSense\\backend\\models\\checkpoints\\cyclone_image_v1.0.0.pt",
-        "checkpoint_sha256": "cee2dfd32127b0efdb329e9391da351c6a7bf7c0978f97b98d15bc4d537a8c12",
+        "checkpoint_sha256": "6692cf0b3800164e9a99a008d0556b8d6b553b925e2e8791f8bb2bded1e7023e",
         "training_history": [
           {
             "epoch": 1,
-            "train_loss": 11.4296,
-            "val_mae_kts": 2.927,
-            "val_accuracy": 0.7992
+            "train_loss": 11.0297,
+            "val_mae_kts": 4.054,
+            "val_accuracy": 0.6942
           },
           {
             "epoch": 2,
-            "train_loss": 3.2882,
-            "val_mae_kts": 4.197,
-            "val_accuracy": 0.8444
+            "train_loss": 3.2781,
+            "val_mae_kts": 5.204,
+            "val_accuracy": 0.7875
           },
           {
             "epoch": 3,
-            "train_loss": 2.5915,
-            "val_mae_kts": 2.249,
-            "val_accuracy": 0.9253
+            "train_loss": 2.6895,
+            "val_mae_kts": 1.736,
+            "val_accuracy": 0.9206
           }
         ]
       },
@@ -193,18 +193,18 @@
         "total_samples_evaluated": 971,
         "intensity_metrics": {
           "sample_count": 971,
-          "mae_kts": 2.025,
-          "rmse_kts": 3.373,
-          "bias_kts": 1.839,
+          "mae_kts": 1.721,
+          "rmse_kts": 2.248,
+          "bias_kts": 1.657,
           "pearson_r": 0.999
         },
         "classification_metrics": {
           "sample_count": 971,
-          "accuracy": 0.9434,
-          "precision_macro": 0.7312,
-          "recall_macro": 0.746,
-          "f1_macro": 0.7319,
-          "f1_weighted": 0.9396
+          "accuracy": 0.9382,
+          "precision_macro": 0.719,
+          "recall_macro": 0.7363,
+          "f1_macro": 0.7175,
+          "f1_weighted": 0.9345
         }
       }
     },
@@ -214,34 +214,34 @@
         "version": "1.0.0",
         "model_type": "fusion",
         "epochs_completed": 4,
-        "elapsed_seconds": 123.95,
-        "best_val_mae_kts": 3.48,
+        "elapsed_seconds": 105.99,
+        "best_val_mae_kts": 3.321,
         "checkpoint_path": "D:\\CycloneSense\\backend\\models\\checkpoints\\cyclone_fusion_v1.0.0.pt",
-        "checkpoint_sha256": "b5be24bc2e5b5e8bdea411e6d8007d7a16d2dcb2f0c9aec57ca49ac272bde839",
+        "checkpoint_sha256": "365b50788b6e9a247d85a7c1a95526eb89aeecb97e2db39f26cbb25fbc396b16",
         "training_history": [
           {
             "epoch": 1,
-            "train_loss": 20.9587,
-            "val_mae_kts": 10.902,
-            "val_accuracy": 0.8093
+            "train_loss": 22.2286,
+            "val_mae_kts": 10.202,
+            "val_accuracy": 0.656
           },
           {
             "epoch": 2,
-            "train_loss": 5.7558,
-            "val_mae_kts": 5.78,
-            "val_accuracy": 0.8685
+            "train_loss": 6.1087,
+            "val_mae_kts": 6.556,
+            "val_accuracy": 0.8023
           },
           {
             "epoch": 3,
-            "train_loss": 4.2145,
-            "val_mae_kts": 4.244,
-            "val_accuracy": 0.9136
+            "train_loss": 4.2978,
+            "val_mae_kts": 4.53,
+            "val_accuracy": 0.8903
           },
           {
             "epoch": 4,
-            "train_loss": 3.3887,
-            "val_mae_kts": 3.48,
-            "val_accuracy": 0.951
+            "train_loss": 3.4768,
+            "val_mae_kts": 3.321,
+            "val_accuracy": 0.9268
           }
         ]
       },
@@ -250,74 +250,74 @@
         "total_samples_evaluated": 971,
         "intensity_metrics": {
           "sample_count": 971,
-          "mae_kts": 2.171,
-          "rmse_kts": 5.666,
-          "bias_kts": 0.22,
-          "pearson_r": 0.972
+          "mae_kts": 1.831,
+          "rmse_kts": 6.126,
+          "bias_kts": -1.374,
+          "pearson_r": 0.971
         },
         "classification_metrics": {
           "sample_count": 971,
-          "accuracy": 0.9753,
-          "precision_macro": 0.7604,
-          "recall_macro": 0.7689,
-          "f1_macro": 0.762,
-          "f1_weighted": 0.971
+          "accuracy": 0.9537,
+          "precision_macro": 0.7336,
+          "recall_macro": 0.7479,
+          "f1_macro": 0.7341,
+          "f1_weighted": 0.9493
         }
       }
     }
   },
   "explainability_sample": {
     "gradcam": {
-      "core_concentration_ratio": 0.384,
-      "peak_activation": 1.575,
-      "saliency_sha256": "50b4f5760bb6e7c503099782cffb17fded220859b6943a81efba49e56ecbacaf",
+      "core_concentration_ratio": 0.366,
+      "peak_activation": 1.5201,
+      "saliency_sha256": "2f01016f61a8ed179f9ecd1bb4da3ad7079b145f8910ba2a3bd1a09e0a09fe9a",
       "causal_disclaimer": "Grad-CAM attribution indicates spatial receptive field sensitivity associated with the model's prediction. It represents associative mathematical gradient flow and must not be interpreted as a causal meteorological driver."
     },
     "environmental_attribution": {
       "attribution_method": "Gradient_x_Input",
       "target_task": "intensity",
       "feature_attributions": {
-        "normalized_latitude": 0.1952,
-        "normalized_longitude": 0.0759,
-        "coriolis_parameter": 0.1231,
-        "dist_from_equator": 0.0505,
-        "pressure_deficit": 0.5343,
-        "forward_speed": 0.0073,
-        "forward_bearing_cos": 0.0069,
-        "season_day_phase": 0.0067
+        "normalized_latitude": 0.2056,
+        "normalized_longitude": 0.0214,
+        "coriolis_parameter": 0.3319,
+        "dist_from_equator": 0.1471,
+        "pressure_deficit": 0.2831,
+        "forward_speed": 0.0007,
+        "forward_bearing_cos": 0.0024,
+        "season_day_phase": 0.0078
       },
       "ranked_features": [
         [
+          "coriolis_parameter",
+          0.3319
+        ],
+        [
           "pressure_deficit",
-          0.5343
+          0.2831
         ],
         [
           "normalized_latitude",
-          0.1952
-        ],
-        [
-          "coriolis_parameter",
-          0.1231
-        ],
-        [
-          "normalized_longitude",
-          0.0759
+          0.2056
         ],
         [
           "dist_from_equator",
-          0.0505
+          0.1471
         ],
         [
-          "forward_speed",
-          0.0073
-        ],
-        [
-          "forward_bearing_cos",
-          0.0069
+          "normalized_longitude",
+          0.0214
         ],
         [
           "season_day_phase",
-          0.0067
+          0.0078
+        ],
+        [
+          "forward_bearing_cos",
+          0.0024
+        ],
+        [
+          "forward_speed",
+          0.0007
         ]
       ],
       "causal_disclaimer": "Environmental feature attributions reflect mathematical model sensitivity gradients for the given parameterization. They do not constitute verified physical causal proofs."
@@ -367,10 +367,10 @@
       "rapid_intensification_observed": true
     },
     "model_predictions": {
-      "pred_wind_t1": 20.28,
-      "pred_wind_t2": 25.51,
-      "delta_pred_wind": 5.23,
-      "pred_wind_rate_per_hr": 1.743,
+      "pred_wind_t1": 20.39,
+      "pred_wind_t2": 24.86,
+      "delta_pred_wind": 4.47,
+      "pred_wind_rate_per_hr": 1.49,
       "rapid_intensification_predicted": true
     }
   }

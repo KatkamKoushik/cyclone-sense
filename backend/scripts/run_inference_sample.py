@@ -37,10 +37,17 @@ def run_sample_inference():
     y, x = np.ogrid[:h, :w]
     cy, cx = h / 2.0, w / 2.0
     r = np.sqrt((x - cx) ** 2 + (y - cy) ** 2) / (min(h, w) / 2.0)
-    eyewall_cooling = min(target_obs.wind_kts * 0.65, 80.0) * np.exp(- ((r - 0.25) ** 2) / 0.05)
-    eye_warming = min(max(target_obs.wind_kts - 40.0, 0.0) * 0.45, 30.0) * np.exp(- (r ** 2) / 0.02)
-    ir_norm = (np.clip(285.0 - eyewall_cooling + eye_warming, 175.0, 320.0) - 270.0) / 30.0
-    wv_norm = (np.clip(ir_norm * 30.0 * 0.85 + 20.0, 180.0, 280.0) - 240.0) / 20.0
+    wind = target_obs.wind_kts
+    eyewall_cooling = min(wind * 0.65, 80.0) * np.exp(- ((r - 0.25) ** 2) / 0.05)
+    eye_warming = min(max(wind - 40.0, 0.0) * 0.45, 30.0) * np.exp(- (r ** 2) / 0.02)
+    background = 285.0 - (wind * 0.1)
+
+    ir_kelvin = np.clip(background - eyewall_cooling + eye_warming, 175.0, 320.0).astype(np.float32)
+    ir_norm = (ir_kelvin - 270.0) / 30.0
+
+    wv_kelvin = np.clip(ir_kelvin * 0.85 + 20.0, 180.0, 280.0).astype(np.float32)
+    wv_norm = (wv_kelvin - 240.0) / 20.0
+
     img_np = np.stack([ir_norm, wv_norm], axis=0).astype(np.float32)
     img_tensor = torch.from_numpy(img_np).unsqueeze(0).to(device)
 

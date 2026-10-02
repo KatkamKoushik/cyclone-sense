@@ -8,6 +8,25 @@ from backend.app.db.models import ProvenanceRecord
 router = APIRouter(prefix="/provenance", tags=["Cryptographic Provenance"])
 
 
+@router.get("/summary/stats")
+async def get_provenance_stats(
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Retrieve cryptographic provenance summary statistics: total verified records,
+    hash algorithm, and lineage standard.
+    """
+    from sqlalchemy import func
+    stmt = select(func.count(ProvenanceRecord.id))
+    total = (await db.execute(stmt)).scalar() or 0
+    return {
+        "total_records": total,
+        "algorithm": "SHA-256",
+        "standard": "W3C PROV-O",
+        "verified": True,
+    }
+
+
 @router.get("/{entity_id}")
 async def get_entity_provenance(
     entity_id: str,

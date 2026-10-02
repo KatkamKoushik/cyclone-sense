@@ -30,6 +30,49 @@ class GOESAdapter(BaseSatelliteAdapter):
             ],
         }
 
+    async def list_recent_granules(
+        self,
+        product: str = "ABI-L2-CMIPC",
+        limit: int = 5,
+        year: int = 2024,
+        day_of_year: int = 270,
+        hour: int = 18,
+    ) -> List[Dict[str, Any]]:
+        """
+        List authentic NOAA GOES ABI granules live from NOAA AWS S3 public bucket.
+        """
+        import xml.etree.ElementTree as ET
+
+        prefix = f"{product}/{year}/{day_of_year:03d}/{hour:02d}/"
+        url = f"{self.base_url}/?list-type=2&prefix={prefix}&max-keys={min(limit, 20)}"
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            try:
+                response = await client.get(url)
+                response.raise_for_status()
+                root = ET.fromstring(response.content)
+                ns = {"s3": "http://s3.amazonaws.com/doc/2006-03-01/"}
+
+                granules = []
+                for elem in root.findall(".//s3:Contents", ns):
+                    key_elem = elem.find("s3:Key", ns)
+                    size_elem = elem.find("s3:Size", ns)
+                    time_elem = elem.find("s3:LastModified", ns)
+                    if key_elem is not None and key_elem.text and key_elem.text.endswith(".nc"):
+                        key = key_elem.text
+                        size_bytes = int(size_elem.text) if size_elem is not None and size_elem.text else 0
+                        granules.append({
+                            "key": key,
+                            "filename": Path(key).name,
+                            "download_url": f"{self.base_url}/{key}",
+                            "size_bytes": size_bytes,
+                            "size_mb": round(size_bytes / (1024 * 1024), 2),
+                            "last_modified": time_elem.text if time_elem is not None else None,
+                        })
+                return granules
+            except Exception as e:
+                raise DataSourceUnavailableError(f"Failed to list GOES granules from NOAA S3: {str(e)}") from e
+
     async def fetch_granule(
         self,
         key_or_path: str,
@@ -40,7 +83,12 @@ class GOESAdapter(BaseSatelliteAdapter):
         Example key: 'ABI-L2-CMIPC/2024/270/18/OR_ABI-L2-CMIPC-M6C13_G16_s20242701801172_e20242701803545_c20242701804021.nc'
         """
         clean_key = key_or_path.lstrip("/")
-        url = f"{self.base_url}/{clean_key}"
+        if clean_key.startswith("http"):
+            url = clean_key
+            clean_key = url.split(".com/")[-1]
+        else:
+            url = f"{self.base_url}/{clean_key}"
+
         filename = Path(clean_key).name
         dest_file = destination_dir / filename
 

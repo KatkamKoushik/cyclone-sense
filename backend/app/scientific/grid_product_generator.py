@@ -1,3 +1,4 @@
+import warnings
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, Union
@@ -111,8 +112,6 @@ def create_reference_satellite_grid_netcdf(
         ir_var.wavelength_um = 10.35
         ir_var.valid_min = np.float32(160.0)
         ir_var.valid_max = np.float32(340.0)
-        ir_var[:, :] = clean_ir
-
         # Water Vapor 6.2 µm Variable
         wv_var = ds.createVariable(
             "water_vapor_brightness_temp",
@@ -127,13 +126,21 @@ def create_reference_satellite_grid_netcdf(
         wv_var.wavelength_um = 6.2
         wv_var.valid_min = np.float32(160.0)
         wv_var.valid_max = np.float32(310.0)
-        wv_var[:, :] = water_vapor
 
         # DQF Variable
         dqf_var = ds.createVariable("dqf", "i2", ("lat", "lon"), zlib=True)
         dqf_var.standard_name = "status_flag"
         dqf_var.long_name = "Data Quality Flags (0: good, 1: conditionally usable, 2: invalid)"
         dqf_var.flag_values = np.array([0, 1, 2], dtype=np.int16)
-        dqf_var[:, :] = dqf
+
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                category=DeprecationWarning,
+                message=".*Setting the shape on a NumPy array.*",
+            )
+            ir_var[:, :] = clean_ir
+            wv_var[:, :] = water_vapor
+            dqf_var[:, :] = dqf
 
     return path

@@ -78,3 +78,27 @@ class ProvenanceTracker:
             "parent_provenance_id": parent_provenance_id,
             "timestamp": timestamp,
         }
+
+    @classmethod
+    def create_lineage_record(
+        cls,
+        entity_type: str,
+        entity_id: str,
+        action: str,
+        software_version: str,
+        parameters: Dict[str, Any],
+        sha256_hash: Optional[str] = None,
+        data_hash: Optional[str] = None,
+        parent_provenance_id: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Convenience alias for create_lineage_entry with flexible hash parameter naming."""
+        resolved_hash = sha256_hash or data_hash or ""
+        return cls.create_lineage_entry(
+            entity_type=entity_type,
+            entity_id=entity_id,
+            sha256_hash=resolved_hash,
+            action=action,
+            software_version=software_version,
+            parameters=parameters,
+            parent_provenance_id=parent_provenance_id,
+        )

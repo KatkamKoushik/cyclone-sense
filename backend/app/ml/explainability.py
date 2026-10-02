@@ -52,6 +52,18 @@ class GradCAMExplainer:
         target_class: Optional[int] = None,
         env_tensor: Optional[torch.Tensor] = None,
     ) -> Dict[str, Any]:
+        # Validate tensor dimensions
+        if image_tensor.ndim != 4:
+            raise ValueError(f"Grad-CAM expects 4D image tensor [B, C, H, W], got shape {list(image_tensor.shape)}")
+        if image_tensor.shape[1] != 2:
+            raise ValueError(f"Grad-CAM expects 2 channels (clean IR, WV), got {image_tensor.shape[1]}")
+
+        # Check for non-finite values
+        if not torch.isfinite(image_tensor).all():
+            raise ValueError("Input image tensor contains non-finite values (NaN or Inf).")
+        if env_tensor is not None and not torch.isfinite(env_tensor).all():
+            raise ValueError("Input environmental tensor contains non-finite values (NaN or Inf).")
+
         self.model.eval()
         self.model.zero_grad()
 
@@ -77,6 +89,21 @@ class GradCAMExplainer:
         if self.gradients is None or self.activations is None:
             raise RuntimeError("Failed to capture Grad-CAM gradients or activations.")
 
+        # Check gradient finiteness
+        if not torch.isfinite(self.gradients).all() or not torch.isfinite(self.activations).all():
+            return {
+                "attribution_method": "Grad-CAM",
+                "is_valid": False,
+                "attribution_status": "NON_FINITE_GRADIENTS",
+                "target_task": target_task,
+                "target_class": target_class,
+                "core_concentration_ratio": 0.0,
+                "peak_activation": 0.0,
+                "heatmap": [],
+                "diagnostic_message": "Attribution computation encountered non-finite gradients or activations.",
+                "causal_disclaimer": self.CAUSAL_DISCLAIMER,
+            }
+
         # Global average pooling of gradients: [1, K, 1, 1]
         weights = torch.mean(self.gradients, dim=(2, 3), keepdim=True)
         # Weighted combination of activation maps: [1, 1, H', W']
@@ -90,12 +117,27 @@ class GradCAMExplainer:
         # Normalize to [0, 1]
         cam_np = cam_upsampled.squeeze().cpu().numpy()
         cam_max = float(np.max(cam_np))
-        if cam_max > 0:
-            cam_norm = (cam_np / cam_max).astype(np.float32)
-        else:
-            cam_norm = np.zeros_like(cam_np, dtype=np.float32)
 
-        # Compute physical core concentration metric
+        if cam_max <= 0.0 or not np.isfinite(cam_max):
+            # No positive gradient contributions exist for this class / task
+            return {
+                "attribution_method": "Grad-CAM",
+                "is_valid": False,
+                "attribution_status": "NO_POSITIVE_ACTIVATION",
+                "target_task": target_task,
+                "target_class": target_class,
+                "saliency_sha256": "NO_POSITIVE_ACTIVATION",
+                "shape": [h, w],
+                "core_concentration_ratio": 0.0,
+                "peak_activation": 0.0,
+                "heatmap": np.zeros((h, w), dtype=np.float32).tolist(),
+                "diagnostic_message": "No positive gradient contributions detected for this target task/head. ReLU rectification suppressed all non-positive spatial sensitivities.",
+                "causal_disclaimer": self.CAUSAL_DISCLAIMER,
+            }
+
+        cam_norm = (cam_np / cam_max).astype(np.float32)
+
+        # Compute physical core concentration metric (inner 25% radius)
         cy, cx = h // 2, w // 2
         y, x = np.ogrid[:h, :w]
         dist = np.sqrt((y - cy) ** 2 + (x - cx) ** 2)
@@ -103,12 +145,14 @@ class GradCAMExplainer:
 
         core_energy = float(np.sum(cam_norm[dist <= r_core]))
         total_energy = float(np.sum(cam_norm))
-        core_concentration = float(core_energy / max(total_energy, 1e-6))
+        core_concentration = float(core_energy / max(total_energy, 1e-6)) if total_energy > 0 else 0.0
 
         saliency_sha256 = ProvenanceTracker.hash_array(cam_norm)
 
         return {
             "attribution_method": "Grad-CAM",
+            "is_valid": True,
+            "attribution_status": "VALID",
             "target_task": target_task,
             "target_class": target_class,
             "saliency_sha256": saliency_sha256,
@@ -123,7 +167,8 @@ class GradCAMExplainer:
 class EnvironmentalAttributionExplainer:
     """
     Computes input feature attribution and sensitivity for tabular environmental covariates.
-    Uses gradient x input sensitivity analysis.
+    Uses gradient x input sensitivity analysis:
+      score_i = |g_i * x_i| / sum(|g_k * x_k|)
     """
 
     FEATURE_NAMES = [
@@ -150,6 +195,12 @@ class EnvironmentalAttributionExplainer:
         image_tensor: Optional[torch.Tensor] = None,
         target_task: str = "intensity",
     ) -> Dict[str, Any]:
+        if env_tensor.ndim != 2 or env_tensor.shape[1] != len(cls.FEATURE_NAMES):
+            raise ValueError(f"Expected env_tensor with shape [1, {len(cls.FEATURE_NAMES)}], got {list(env_tensor.shape)}")
+
+        if not torch.isfinite(env_tensor).all():
+            raise ValueError("Input environmental tensor contains non-finite values (NaN or Inf).")
+
         model.eval()
         env_input = env_tensor.clone().detach().requires_grad_(True)
 
@@ -175,10 +226,12 @@ class EnvironmentalAttributionExplainer:
         attributions = np.abs(grad * val)
 
         total = float(np.sum(attributions))
-        if total > 0:
+        if total > 0 and np.isfinite(total):
             rel_attributions = (attributions / total).tolist()
+            is_valid = True
         else:
-            rel_attributions = (attributions).tolist()
+            rel_attributions = [1.0 / len(cls.FEATURE_NAMES)] * len(cls.FEATURE_NAMES)
+            is_valid = False
 
         feature_scores = {
             name: round(float(score), 4)
@@ -190,6 +243,7 @@ class EnvironmentalAttributionExplainer:
 
         return {
             "attribution_method": "Gradient_x_Input",
+            "is_valid": is_valid,
             "target_task": target_task,
             "feature_attributions": feature_scores,
             "ranked_features": sorted_features,

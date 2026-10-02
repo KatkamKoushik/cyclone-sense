@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -34,9 +34,17 @@ class CycloneEnvironmentModel(nn.Module):
     Environment-only model predicting continuous intensity and pattern severity.
     """
 
-    def __init__(self, in_features: int = 8, embedding_dim: int = 64, num_classes: int = 5):
+    def __init__(
+        self,
+        in_features: int = 8,
+        embedding_dim: int = 64,
+        num_classes: int = 5,
+        input_features: Optional[int] = None,
+        env_features: Optional[int] = None,
+    ):
         super().__init__()
-        self.encoder = CycloneEnvironmentEncoder(in_features=in_features, embedding_dim=embedding_dim)
+        actual_features = input_features or env_features or in_features
+        self.encoder = CycloneEnvironmentEncoder(in_features=actual_features, embedding_dim=embedding_dim)
         self.intensity_head = nn.Sequential(
             nn.Linear(embedding_dim, 32),
             nn.SiLU(inplace=True),
