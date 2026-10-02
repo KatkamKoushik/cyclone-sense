@@ -1,0 +1,88 @@
+{
+  "model_name": "cyclone_fusion",
+  "version": "1.0.0",
+  "weights_filename": "cyclone_fusion_v1.0.0.pt",
+  "weights_sha256": "b5be24bc2e5b5e8bdea411e6d8007d7a16d2dcb2f0c9aec57ca49ac272bde839",
+  "file_size_bytes": 8136503,
+  "config": {
+    "model_type": "fusion",
+    "epochs": 4,
+    "lr": 0.0008,
+    "weight_decay": 0.0001
+  },
+  "dataset_meta": {
+    "strategy": "temporal",
+    "seed": 42,
+    "total_storms": 157,
+    "total_observations": 7229,
+    "train": {
+      "storm_count": 109,
+      "obs_count": 4973,
+      "seasons": [
+        2000,
+        2001,
+        2002,
+        2003,
+        2004,
+        2005,
+        2006,
+        2007,
+        2008,
+        2009,
+        2010,
+        2011,
+        2012,
+        2013,
+        2014,
+        2015,
+        2016,
+        2017,
+        2018
+      ]
+    },
+    "val": {
+      "storm_count": 23,
+      "obs_count": 1285,
+      "seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
+      ]
+    },
+    "test": {
+      "storm_count": 25,
+      "obs_count": 971,
+      "seasons": [
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
+      ]
+    },
+    "leakage_check_passed": true
+  },
+  "evaluation_metrics": {
+    "model_type": "fusion",
+    "total_samples_evaluated": 1285,
+    "intensity_metrics": {
+      "sample_count": 1285,
+      "mae_kts": 3.48,
+      "rmse_kts": 9.098,
+      "bias_kts": -1.244,
+      "pearson_r": 0.96
+    },
+    "classification_metrics": {
+      "sample_count": 1285,
+      "accuracy": 0.951,
+      "precision_macro": 0.7295,
+      "recall_macro": 0.7579,
+      "f1_macro": 0.7359,
+      "f1_weighted": 0.9376
+    }
+  },
+  "saved_at_utc": "2026-10-02T08:36:31.265793+00:00",
+  "software_version": "0.1.0"
+}

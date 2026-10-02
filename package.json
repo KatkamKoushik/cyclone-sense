@@ -1,0 +1,13 @@
+{
+  "name": "cyclonesense",
+  "version": "0.1.0",
+  "description": "CycloneSense — Explainable Multi-Source Tropical Cyclone Pattern Intelligence",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter frontend dev",
+    "build:frontend": "pnpm --filter frontend build",
+    "lint:frontend": "pnpm --filter frontend lint",
+    "test:backend": "python -m pytest backend/tests",
+    "server:backend": "python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload"
+  }
+}
