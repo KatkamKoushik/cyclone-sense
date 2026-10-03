@@ -30,10 +30,41 @@ export interface SystemHealth {
     platform: string;
   };
   adapters: {
-    noaa_ibtracs: Record<string, unknown>;
-    noaa_goes: Record<string, unknown>;
-    nasa_earthdata?: Record<string, unknown>;
-    isro_insat: Record<string, unknown>;
+    noaa_ibtracs: Record<string, unknown> & {
+      connectivity?: {
+        connected?: boolean;
+        status?: string;
+        file_size_bytes?: number;
+        error?: string;
+      };
+      local_file_exists?: boolean;
+    };
+    noaa_goes: Record<string, unknown> & {
+      connectivity?: {
+        connected?: boolean;
+        status?: string;
+        latency_ms?: number;
+        error?: string;
+      };
+      anonymous_access_enabled?: boolean;
+    };
+    nasa_earthdata?: Record<string, unknown> & {
+      connectivity?: {
+        connected?: boolean;
+        status?: string;
+        latency_ms?: number;
+        error?: string;
+      };
+      configured?: boolean;
+    };
+    isro_insat: Record<string, unknown> & {
+      connectivity?: {
+        connected?: boolean;
+        status?: string;
+        error?: string;
+      };
+      credentials_present?: boolean;
+    };
   };
   models: Array<{
     id: string;
@@ -267,12 +298,12 @@ export interface TemporalComparisonResult {
     speed_kmh: number;
     bearing_deg: number;
   };
-  structural_evolution: {
+  structural_evolution?: {
     delta_eyewall_cooling_kelvin: number;
     delta_eye_warming_kelvin: number;
     delta_convective_vigor_ratio: number;
     diff_grid_sha256: string;
-  };
+  } | null;
   environmental_evolution: {
     delta_pressure_hpa: number | null;
   };

@@ -262,38 +262,47 @@ function TemporalComparisonContent() {
                 <span>Convective Thermal Deltas</span>
               </h3>
 
-              <div className="space-y-2.5 text-xs">
-                <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                  <span className="text-slate-400">Eyewall Cooling (ΔT Eyewall):</span>
-                  <span
-                    className={`font-bold ${
-                      comparisonResult.structural_evolution.delta_eyewall_cooling_kelvin <= 0
-                        ? "text-emerald-400"
-                        : "text-amber-400"
-                    }`}
-                  >
-                    {comparisonResult.structural_evolution.delta_eyewall_cooling_kelvin.toFixed(2)} K
-                  </span>
-                </div>
+              {comparisonResult.structural_evolution ? (
+                <div className="space-y-2.5 text-xs">
+                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <span className="text-slate-400">Eyewall Cooling (ΔT Eyewall):</span>
+                    <span
+                      className={`font-bold ${
+                        comparisonResult.structural_evolution.delta_eyewall_cooling_kelvin <= 0
+                          ? "text-emerald-400"
+                          : "text-amber-400"
+                      }`}
+                    >
+                      {comparisonResult.structural_evolution.delta_eyewall_cooling_kelvin.toFixed(2)} K
+                    </span>
+                  </div>
 
-                <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                  <span className="text-slate-400">Eye Warming (ΔT Eye):</span>
-                  <span className="text-white font-bold">
-                    {comparisonResult.structural_evolution.delta_eye_warming_kelvin.toFixed(2)} K
-                  </span>
-                </div>
+                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <span className="text-slate-400">Eye Warming (ΔT Eye):</span>
+                    <span className="text-white font-bold">
+                      {comparisonResult.structural_evolution.delta_eye_warming_kelvin.toFixed(2)} K
+                    </span>
+                  </div>
 
-                <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                  <span className="text-slate-400">Convective Vigor Delta:</span>
-                  <span className="text-slate-300">
-                    {comparisonResult.structural_evolution.delta_convective_vigor_ratio.toFixed(3)}
-                  </span>
-                </div>
+                  <div className="flex justify-between items-center p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <span className="text-slate-400">Convective Vigor Delta:</span>
+                    <span className="text-slate-300">
+                      {comparisonResult.structural_evolution.delta_convective_vigor_ratio.toFixed(3)}
+                    </span>
+                  </div>
 
-                <div className="text-xs text-slate-500 truncate p-2">
-                  Diff SHA256: {comparisonResult.structural_evolution.diff_grid_sha256.substring(0, 20)}...
+                  <div className="text-xs text-slate-500 truncate p-2">
+                    Diff SHA256: {comparisonResult.structural_evolution.diff_grid_sha256?.substring(0, 20)}...
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-900/40 border border-slate-800 text-xs text-slate-400 space-y-2">
+                  <p className="font-semibold text-slate-300">Track Kinematics Mode</p>
+                  <p className="text-slate-500 text-[11px] leading-relaxed">
+                    Observations verified from authentic IBTrACS track coordinates and pressures. 2D structural thermal differentials require paired NetCDF4 satellite rasters.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Column 3: Intensity & RI Evolution */}

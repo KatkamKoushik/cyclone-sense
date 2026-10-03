@@ -12,13 +12,14 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
     
-    # Database Configuration (PostgreSQL primary; SQLite async fallback for local zero-dependency development)
-    DATABASE_URL: str = "sqlite+aiosqlite:///./cyclonesense.db"
+    # Database Configuration (PostgreSQL primary or SQLite async engine for local development)
+    REPO_ROOT: Path = Path(__file__).resolve().parent.parent.parent
+    DATABASE_URL: str = f"sqlite+aiosqlite:///{(Path(__file__).resolve().parent.parent.parent / 'cyclonesense.db').as_posix()}"
     DB_ECHO: bool = False
     
     # Redis & Asynchronous Job Configuration
     REDIS_URL: str = "redis://localhost:6379/0"
-    CELERY_TASK_ALWAYS_EAGER: bool = True  # Automatically executes jobs in-process if Redis is offline
+    CELERY_TASK_ALWAYS_EAGER: bool = True  # In-process execution mode when Redis broker is offline
     
     # Storage Paths
     BASE_DIR: Path = Path(__file__).resolve().parent.parent

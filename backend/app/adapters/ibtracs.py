@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import httpx
+from backend.app.config import settings
 from backend.app.adapters.base import BaseSatelliteAdapter, DataSourceUnavailableError
 
 
@@ -28,12 +29,32 @@ class IBTrACSAdapter(BaseSatelliteAdapter):
 
     def check_configuration(self) -> Dict[str, Any]:
         """IBTrACS is open-access public data hosted by NOAA NCEI."""
+        archive_path = settings.DATA_RAW_DIR / "IBTrACS.NI.v04r01.nc"
         return {
             "source": self.source_name,
             "requires_auth": False,
             "configured": True,
+            "local_file_exists": archive_path.exists(),
             "base_url": self.BASE_URL,
             "available_subsets": list(self.VALID_GRANULES.keys()),
+        }
+
+    async def check_connectivity(self) -> Dict[str, Any]:
+        """
+        Verify local authoritative archive exists and is non-empty.
+        """
+        target = settings.DATA_RAW_DIR / "IBTrACS.NI.v04r01.nc"
+        if target.exists() and target.stat().st_size > 1000:
+            return {
+                "connected": True,
+                "status": "ARCHIVE_VERIFIED",
+                "file_size_bytes": target.stat().st_size,
+                "path": str(target),
+            }
+        return {
+            "connected": False,
+            "status": "ARCHIVE_MISSING",
+            "error": "Authoritative IBTrACS.NI.v04r01.nc missing from data/raw directory.",
         }
 
     async def fetch_granule(

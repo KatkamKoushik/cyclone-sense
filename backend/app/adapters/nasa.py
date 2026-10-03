@@ -51,6 +51,35 @@ class NASAAdapter(BaseSatelliteAdapter):
             "status": "AUTHENTICATED" if configured else "CREDENTIALS_REQUIRED",
         }
 
+    async def check_connectivity(self) -> Dict[str, Any]:
+        """
+        Perform a live HTTP ping against NASA CMR API.
+        """
+        try:
+            url = f"{self.CMR_SEARCH_URL}?short_name=MOD02QKM&page_size=1"
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                resp = await client.get(url, headers=self._get_headers())
+                if resp.status_code == 200:
+                    return {
+                        "connected": True,
+                        "status": "CONNECTED",
+                        "endpoint": "https://cmr.earthdata.nasa.gov",
+                        "latency_ms": round(resp.elapsed.total_seconds() * 1000, 1),
+                    }
+                return {
+                    "connected": False,
+                    "status": "ERROR",
+                    "endpoint": "https://cmr.earthdata.nasa.gov",
+                    "error": f"HTTP status {resp.status_code}",
+                }
+        except Exception as e:
+            return {
+                "connected": False,
+                "status": "DISCONNECTED",
+                "endpoint": "https://cmr.earthdata.nasa.gov",
+                "error": str(e),
+            }
+
     def _get_headers(self) -> Dict[str, str]:
         headers = {
             "User-Agent": "CycloneSense-Scientific-Ingestion/0.1.0",

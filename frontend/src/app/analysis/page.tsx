@@ -65,10 +65,10 @@ function AnalysisStudioContent() {
       try {
         const list = await api.listProducts(30);
         setProducts(list);
-        if (!selectedProductId && list.length > 0) {
+        if (list.length > 0) {
           // Default to the first satellite granule (prefer NOAA GOES or NASA products)
           const preferred = list.find((p) => p.source_origin.includes("GOES") || p.source_origin.includes("NASA")) || list[0];
-          setSelectedProductId(preferred.id);
+          setSelectedProductId((prev) => prev || preferred.id);
         }
       } catch (e) {
         console.error("Failed to load satellite products:", e);
@@ -95,7 +95,13 @@ function AnalysisStudioContent() {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    setJobResult(null);
+    if ((modelType === "fusion" || modelType === "image") && (dataSourceMode !== "satellite" || !selectedProductId)) {
+      setError(
+        "Image-Only CNN and Multimodal Fusion architectures strictly require a verified 2D satellite granule. Please switch to 'Direct Satellite Granule' mode or select the Environment-Only MLP / Baseline CLIPER architecture for track covariates."
+      );
+      setSubmitting(false);
+      return;
+    }
 
     const payload: InferencePayload = {
       model_type: modelType,
@@ -302,7 +308,7 @@ function AnalysisStudioContent() {
                   </span>
                 </div>
                 <p className="text-sm text-slate-400 pl-5">
-                  Concatenates 2-channel CNN latent vector ($D=128$) with LayerNorm environment embeddings ($D=64$). Lowest bias (+0.22 kts) and highest F1 (0.7604).
+                  Concatenates 2-channel CNN latent vector with LayerNorm environment embeddings. Top unseen test accuracy (95.4%) and Macro-F1 (0.7341).
                 </p>
               </label>
 
@@ -327,11 +333,11 @@ function AnalysisStudioContent() {
                     <span className="text-xs font-bold text-white">Image-Only CNN</span>
                   </div>
                   <span className="text-sm font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                    MAE 2.02 kts
+                    MAE 1.72 kts
                   </span>
                 </div>
                 <p className="text-sm text-slate-400 pl-5">
-                  Multi-scale residual CNN consuming 10.35 µm IR and 6.2 µm Water Vapor fields. Includes Grad-CAM hooks.
+                  Multi-scale residual CNN consuming 10.35 µm IR and 6.2 µm Water Vapor fields. MAE 1.721 kts, Accuracy 93.8%. Includes Grad-CAM hooks.
                 </p>
               </label>
 
@@ -356,11 +362,11 @@ function AnalysisStudioContent() {
                     <span className="text-xs font-bold text-white">Environment-Only MLP</span>
                   </div>
                   <span className="text-sm font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                    8 Covariates
+                    MAE 9.99 kts
                   </span>
                 </div>
                 <p className="text-sm text-slate-400 pl-5">
-                  LayerNorm MLP consuming Coriolis, pressure deficit, kinematics, and seasonal phase covariates.
+                  LayerNorm MLP consuming Coriolis, pressure deficit, kinematics, and seasonal phase covariates. MAE 9.993 kts, Accuracy 63.0%.
                 </p>
               </label>
 

@@ -34,6 +34,27 @@ class INSATAdapter(BaseSatelliteAdapter):
             ) if not has_key else "Credentials configured successfully.",
         }
 
+    async def check_connectivity(self) -> Dict[str, Any]:
+        """
+        Check genuine ISRO MOSDAC authentication status.
+        Does not simulate or claim connected without genuine credentials.
+        """
+        if not self.api_key or len(self.api_key.strip()) <= 5:
+            return {
+                "connected": False,
+                "status": "ACCESS_REQUIRED",
+                "error": "ISRO MOSDAC credentials not configured (MOSDAC_API_KEY required).",
+            }
+        try:
+            headers = {"Authorization": f"Bearer {self.api_key.strip()}"}
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                resp = await client.get(f"{self.MOSDAC_BASE_URL}/status", headers=headers)
+                if resp.status_code == 200:
+                    return {"connected": True, "status": "CONNECTED"}
+                return {"connected": False, "status": "ACCESS_DENIED", "error": f"HTTP {resp.status_code}"}
+        except Exception as e:
+            return {"connected": False, "status": "DISCONNECTED", "error": str(e)}
+
     async def fetch_granule(
         self,
         product_identifier: str,

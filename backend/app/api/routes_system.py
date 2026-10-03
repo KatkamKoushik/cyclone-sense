@@ -1,5 +1,7 @@
+import asyncio
 import os
 import sys
+import time
 from typing import Any, Dict
 from fastapi import APIRouter
 import redis
@@ -13,6 +15,9 @@ from backend.app.ml.model import CycloneModelRegistry
 
 router = APIRouter(prefix="/system", tags=["System & Infrastructure"])
 
+_adapter_connectivity_cache: Dict[str, Any] = {}
+_adapter_connectivity_timestamp: float = 0.0
+
 
 @router.get("/health")
 async def system_health() -> Dict[str, Any]:
@@ -24,6 +29,8 @@ async def system_health() -> Dict[str, Any]:
     - External satellite adapter configuration
     - Registered ML models
     """
+    global _adapter_connectivity_cache, _adapter_connectivity_timestamp
+
     # 1. Database check
     db_status = "UNKNOWN"
     db_dialect = engine.url.get_backend_name()
@@ -57,12 +64,28 @@ async def system_health() -> Dict[str, Any]:
         # Fallback to checking via environment / nvidia-smi if torch not installed
         pass
 
-    # 4. External adapters status
-    # 4. External adapters status
+    # 4. External adapters status & live connectivity verification (15-second cache)
     ibtracs_adapter = IBTrACSAdapter()
     goes_adapter = GOESAdapter()
     insat_adapter = INSATAdapter()
     nasa_adapter = NASAAdapter()
+
+    now = time.time()
+    if (now - _adapter_connectivity_timestamp) > 15.0 or not _adapter_connectivity_cache:
+        ib_res, goes_res, nasa_res, insat_res = await asyncio.gather(
+            ibtracs_adapter.check_connectivity(),
+            goes_adapter.check_connectivity(),
+            nasa_adapter.check_connectivity(),
+            insat_adapter.check_connectivity(),
+            return_exceptions=True,
+        )
+        _adapter_connectivity_cache = {
+            "noaa_ibtracs": ib_res if isinstance(ib_res, dict) else {"connected": False, "status": "ERROR", "error": str(ib_res)},
+            "noaa_goes": goes_res if isinstance(goes_res, dict) else {"connected": False, "status": "ERROR", "error": str(goes_res)},
+            "nasa_earthdata": nasa_res if isinstance(nasa_res, dict) else {"connected": False, "status": "ERROR", "error": str(nasa_res)},
+            "isro_insat": insat_res if isinstance(insat_res, dict) else {"connected": False, "status": "ERROR", "error": str(insat_res)},
+        }
+        _adapter_connectivity_timestamp = now
 
     # 5. Registered models
     models = [
@@ -95,10 +118,22 @@ async def system_health() -> Dict[str, Any]:
             "platform": sys.platform,
         },
         "adapters": {
-            "noaa_ibtracs": ibtracs_adapter.check_configuration(),
-            "noaa_goes": goes_adapter.check_configuration(),
-            "nasa_earthdata": nasa_adapter.check_configuration(),
-            "isro_insat": insat_adapter.check_configuration(),
+            "noaa_ibtracs": {
+                **ibtracs_adapter.check_configuration(),
+                "connectivity": _adapter_connectivity_cache.get("noaa_ibtracs", {}),
+            },
+            "noaa_goes": {
+                **goes_adapter.check_configuration(),
+                "connectivity": _adapter_connectivity_cache.get("noaa_goes", {}),
+            },
+            "nasa_earthdata": {
+                **nasa_adapter.check_configuration(),
+                "connectivity": _adapter_connectivity_cache.get("nasa_earthdata", {}),
+            },
+            "isro_insat": {
+                **insat_adapter.check_configuration(),
+                "connectivity": _adapter_connectivity_cache.get("isro_insat", {}),
+            },
         },
         "models": models,
     }
@@ -178,8 +213,8 @@ async def test_adapter_connection(payload: Dict[str, str]) -> Dict[str, Any]:
         except Exception as e:
             return {
                 "adapter": "noaa_goes",
-                "status": "ONLINE",
-                "message": f"AWS Open Data NOAA GOES public bucket reachable via HTTPS ({str(e)}).",
+                "status": "ERROR",
+                "message": f"AWS Open Data NOAA GOES S3 connection failed: {str(e)}",
                 "details": adapter.check_configuration(),
             }
     elif adapter_name == "nasa_earthdata":

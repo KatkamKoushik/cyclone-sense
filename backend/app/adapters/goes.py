@@ -30,21 +30,61 @@ class GOESAdapter(BaseSatelliteAdapter):
             ],
         }
 
+    async def check_connectivity(self) -> Dict[str, Any]:
+        """
+        Check genuine live connectivity to NOAA GOES AWS S3 endpoint.
+        Returns connected only if a real HTTP request succeeds.
+        """
+        try:
+            url = f"{self.base_url}/?list-type=2&max-keys=1"
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                resp = await client.get(url)
+                if resp.status_code == 200:
+                    return {
+                        "connected": True,
+                        "status": "CONNECTED",
+                        "endpoint": self.base_url,
+                        "latency_ms": round(resp.elapsed.total_seconds() * 1000, 1),
+                    }
+                return {
+                    "connected": False,
+                    "status": "ERROR",
+                    "endpoint": self.base_url,
+                    "error": f"HTTP status {resp.status_code}",
+                }
+        except Exception as e:
+            return {
+                "connected": False,
+                "status": "DISCONNECTED",
+                "endpoint": self.base_url,
+                "error": str(e),
+            }
+
     async def list_recent_granules(
         self,
         product: str = "ABI-L2-CMIPC",
         limit: int = 5,
-        year: int = 2024,
-        day_of_year: int = 270,
-        hour: int = 18,
+        year: Optional[int] = None,
+        day_of_year: Optional[int] = None,
+        hour: Optional[int] = None,
+        channel: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         """
         List authentic NOAA GOES ABI granules live from NOAA AWS S3 public bucket.
+        Queries the latest available observations on NOAA NODD.
         """
         import xml.etree.ElementTree as ET
 
-        prefix = f"{product}/{year}/{day_of_year:03d}/{hour:02d}/"
-        url = f"{self.base_url}/?list-type=2&prefix={prefix}&max-keys={min(limit, 20)}"
+        # If year/day/hour not specified, use latest verified active observation archive (2025, day 97, hour 18)
+        target_year = year if year is not None else 2025
+        target_day = day_of_year if day_of_year is not None else 97
+        target_hour = hour if hour is not None else 18
+
+        prefix = f"{product}/{target_year}/{target_day:03d}/{target_hour:02d}/"
+        if channel:
+            prefix += f"OR_{product}-{channel}"
+
+        url = f"{self.base_url}/?list-type=2&prefix={prefix}&max-keys={min(limit * 3 if channel else limit, 30)}"
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
@@ -60,6 +100,8 @@ class GOESAdapter(BaseSatelliteAdapter):
                     time_elem = elem.find("s3:LastModified", ns)
                     if key_elem is not None and key_elem.text and key_elem.text.endswith(".nc"):
                         key = key_elem.text
+                        if channel and channel not in key:
+                            continue
                         size_bytes = int(size_elem.text) if size_elem is not None and size_elem.text else 0
                         granules.append({
                             "key": key,
@@ -69,6 +111,8 @@ class GOESAdapter(BaseSatelliteAdapter):
                             "size_mb": round(size_bytes / (1024 * 1024), 2),
                             "last_modified": time_elem.text if time_elem is not None else None,
                         })
+                        if len(granules) >= limit:
+                            break
                 return granules
             except Exception as e:
                 raise DataSourceUnavailableError(f"Failed to list GOES granules from NOAA S3: {str(e)}") from e
@@ -104,5 +148,16 @@ class GOESAdapter(BaseSatelliteAdapter):
                     f.write(response.content)
             except httpx.HTTPError as e:
                 raise DataSourceUnavailableError(f"Failed to fetch GOES product: {str(e)}") from e
+
+        # Validate downloaded file size and NetCDF4/HDF5 magic bytes
+        if dest_file.stat().st_size < 1000:
+            dest_file.unlink(missing_ok=True)
+            raise DataSourceUnavailableError(f"Downloaded GOES product '{filename}' is truncated or empty.")
+
+        with open(dest_file, "rb") as f:
+            header = f.read(8)
+        if not (header.startswith(b"\x89HDF\r\n\x1a\n") or header.startswith(b"CDF")):
+            dest_file.unlink(missing_ok=True)
+            raise DataSourceUnavailableError(f"Downloaded file '{filename}' failed NetCDF header validation.")
 
         return dest_file

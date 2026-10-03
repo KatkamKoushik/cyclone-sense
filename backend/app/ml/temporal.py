@@ -19,17 +19,15 @@ class TemporalCycloneComparator:
         cls,
         obs_t1: CycloneObservation,
         obs_t2: CycloneObservation,
-        tensor_t1: np.ndarray,  # [C, H, W]
-        tensor_t2: np.ndarray,  # [C, H, W]
+        tensor_t1: Optional[np.ndarray] = None,  # [C, H, W]
+        tensor_t2: Optional[np.ndarray] = None,  # [C, H, W]
         model: Optional[nn.Module] = None,
         device: torch.device = torch.device("cpu"),
     ) -> Dict[str, Any]:
         """
         Executes real scientific differential analysis between T1 and T2 observations.
+        Does NOT synthesize artificial vortex tensors if satellite grids are not provided.
         """
-        if tensor_t1.shape != tensor_t2.shape:
-            raise ValueError(f"Tensor shape mismatch between T1 ({tensor_t1.shape}) and T2 ({tensor_t2.shape})")
-
         # 1. Temporal baseline
         dt1 = datetime.fromisoformat(obs_t1.timestamp_iso.replace("Z", "+00:00"))
         dt2 = datetime.fromisoformat(obs_t2.timestamp_iso.replace("Z", "+00:00"))
@@ -44,35 +42,47 @@ class TemporalCycloneComparator:
             obs_t1.lat, obs_t1.lon, obs_t2.lat, obs_t2.lon
         )
 
-        # 3. Structural & convective changes (using Primary IR channel = index 0)
-        ir_t1 = tensor_t1[0]
-        ir_t2 = tensor_t2[0]
+        # 3. Structural & convective changes (if authentic satellite tensors are provided)
+        structural_evolution = None
+        if tensor_t1 is not None and tensor_t2 is not None:
+            if tensor_t1.shape != tensor_t2.shape:
+                raise ValueError(f"Tensor shape mismatch between T1 ({tensor_t1.shape}) and T2 ({tensor_t2.shape})")
 
-        h, w = ir_t1.shape
-        cy, cx = h // 2, w // 2
-        y, x = np.ogrid[:h, :w]
-        dist_from_center = np.sqrt((y - cy) ** 2 + (x - cx) ** 2)
-        r_eyewall = (dist_from_center > (min(h, w) * 0.10)) & (dist_from_center <= (min(h, w) * 0.35))
-        r_eye = dist_from_center <= (min(h, w) * 0.10)
+            ir_t1 = tensor_t1[0]
+            ir_t2 = tensor_t2[0]
 
-        t1_eyewall_min = float(np.min(ir_t1[r_eyewall])) if np.any(r_eyewall) else float(np.min(ir_t1))
-        t2_eyewall_min = float(np.min(ir_t2[r_eyewall])) if np.any(r_eyewall) else float(np.min(ir_t2))
-        delta_eyewall_temp = t2_eyewall_min - t1_eyewall_min  # Negative = cooling/intensifying
+            h, w = ir_t1.shape
+            cy, cx = h // 2, w // 2
+            y, x = np.ogrid[:h, :w]
+            dist_from_center = np.sqrt((y - cy) ** 2 + (x - cx) ** 2)
+            r_eyewall = (dist_from_center > (min(h, w) * 0.10)) & (dist_from_center <= (min(h, w) * 0.35))
+            r_eye = dist_from_center <= (min(h, w) * 0.10)
 
-        t1_eye_mean = float(np.mean(ir_t1[r_eye])) if np.any(r_eye) else 0.0
-        t2_eye_mean = float(np.mean(ir_t2[r_eye])) if np.any(r_eye) else 0.0
-        delta_eye_warmth = t2_eye_mean - t1_eye_mean
+            t1_eyewall_min = float(np.min(ir_t1[r_eyewall])) if np.any(r_eyewall) else float(np.min(ir_t1))
+            t2_eyewall_min = float(np.min(ir_t2[r_eyewall])) if np.any(r_eyewall) else float(np.min(ir_t2))
+            delta_eyewall_temp = t2_eyewall_min - t1_eyewall_min  # Negative = cooling/intensifying
 
-        # Convective vigor shift
-        p25_t1 = float(np.percentile(ir_t1, 25))
-        p25_t2 = float(np.percentile(ir_t2, 25))
-        conv_fraction_t1 = float(np.mean(ir_t1 < p25_t1))
-        conv_fraction_t2 = float(np.mean(ir_t2 < p25_t2))
-        delta_convective_area = conv_fraction_t2 - conv_fraction_t1
+            t1_eye_mean = float(np.mean(ir_t1[r_eye])) if np.any(r_eye) else 0.0
+            t2_eye_mean = float(np.mean(ir_t2[r_eye])) if np.any(r_eye) else 0.0
+            delta_eye_warmth = t2_eye_mean - t1_eye_mean
 
-        # Pixel-wise differential array (T2 - T1)
-        diff_grid = (ir_t2 - ir_t1).astype(np.float32)
-        diff_sha256 = ProvenanceTracker.hash_array(diff_grid)
+            # Convective vigor shift
+            p25_t1 = float(np.percentile(ir_t1, 25))
+            p25_t2 = float(np.percentile(ir_t2, 25))
+            conv_fraction_t1 = float(np.mean(ir_t1 < p25_t1))
+            conv_fraction_t2 = float(np.mean(ir_t2 < p25_t2))
+            delta_convective_area = conv_fraction_t2 - conv_fraction_t1
+
+            # Pixel-wise differential array (T2 - T1)
+            diff_grid = (ir_t2 - ir_t1).astype(np.float32)
+            diff_sha256 = ProvenanceTracker.hash_array(diff_grid)
+
+            structural_evolution = {
+                "delta_eyewall_cooling_kelvin": round(delta_eyewall_temp, 3),
+                "delta_eye_warming_kelvin": round(delta_eye_warmth, 3),
+                "delta_convective_vigor_ratio": round(delta_convective_area, 3),
+                "diff_grid_sha256": diff_sha256,
+            }
 
         # 4. Environmental changes
         delta_pres = None
@@ -84,9 +94,9 @@ class TemporalCycloneComparator:
         wind_rate_kts_per_hr = delta_wind_true / delta_hours
         rapid_intensification_observed = (wind_rate_kts_per_hr >= 1.25)  # >= 30 kts / 24h
 
-        # 6. Model inference (if model provided)
+        # 6. Model inference (if model and tensors are provided)
         model_predictions: Dict[str, Any] = {}
-        if model is not None:
+        if model is not None and tensor_t1 is not None and tensor_t2 is not None:
             model.eval()
             model.to(device)
             with torch.no_grad():
@@ -133,12 +143,7 @@ class TemporalCycloneComparator:
                 "speed_kmh": round(forward_speed_kmh, 2),
                 "bearing_deg": round(bearing_deg, 1),
             },
-            "structural_evolution": {
-                "delta_eyewall_cooling_kelvin": round(delta_eyewall_temp, 3),
-                "delta_eye_warming_kelvin": round(delta_eye_warmth, 3),
-                "delta_convective_vigor_ratio": round(delta_convective_area, 3),
-                "diff_grid_sha256": diff_sha256,
-            },
+            "structural_evolution": structural_evolution,
             "environmental_evolution": {
                 "delta_pressure_hpa": delta_pres,
             },

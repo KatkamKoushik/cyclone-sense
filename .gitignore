@@ -47,3 +47,5 @@ frontend/out/
 tools/
 *.pdb
 *.exe
+dump.rdb
+*.rdb

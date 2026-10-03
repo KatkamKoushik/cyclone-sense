@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   IconActivity,
@@ -37,10 +37,14 @@ export default function OverviewDashboard() {
   const [recentJobs, setRecentJobs] = useState<AnalysisJob[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
+  const [refreshCadenceSec] = useState<number>(30);
 
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    setError(null);
+  const fetchDashboardData = useCallback(async (isSilent = false) => {
+    if (!isSilent) {
+      setLoading(true);
+    }
     try {
       const [hData, cData, rData, mData, pData, jData] = await Promise.all([
         api.getSystemHealth().catch(() => null),
@@ -56,16 +60,64 @@ export default function OverviewDashboard() {
       setModels(mData || []);
       setProvenanceStats(pData);
       setRecentJobs(jData || []);
+      setLastFetched(new Date());
+      setError(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard data from backend");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    let ignore = false;
+    async function load() {
+      try {
+        const [hData, cData, rData, mData, pData, jData] = await Promise.all([
+          api.getSystemHealth().catch(() => null),
+          api.getStormCatalog({ limit: 5 }).catch(() => null),
+          api.getEvaluationReport().catch(() => null),
+          api.listMLModels().catch(() => []),
+          api.getProvenanceStats().catch(() => null),
+          api.listAnalysisJobs(6).catch(() => []),
+        ]);
+        if (!ignore) {
+          setHealth(hData);
+          setCatalog(cData);
+          setEvalReport(rData);
+          setModels(mData || []);
+          setProvenanceStats(pData);
+          setRecentJobs(jData || []);
+          setLastFetched(new Date());
+          setError(null);
+          setLoading(false);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : "Failed to load dashboard data from backend");
+          setLoading(false);
+        }
+      }
+    }
+    load();
+
+    if (!autoRefresh) {
+      return () => {
+        ignore = true;
+      };
+    }
+
+    const timer = setInterval(() => {
+      if (!ignore) {
+        fetchDashboardData(true);
+      }
+    }, refreshCadenceSec * 1000);
+
+    return () => {
+      ignore = true;
+      clearInterval(timer);
+    };
+  }, [autoRefresh, refreshCadenceSec, fetchDashboardData]);
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
@@ -74,9 +126,23 @@ export default function OverviewDashboard() {
         <div>
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-white flex items-center gap-3">
             <span>Mission Overview & System Health</span>
-            <span className="text-xs px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono font-medium">
-              Live Backend Connected
-            </span>
+            {loading ? (
+              <span className="text-xs px-3 py-1 rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20 font-mono font-medium animate-pulse">
+                Checking Backend...
+              </span>
+            ) : health?.status === "OPERATIONAL" ? (
+              <span className="text-xs px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono font-medium">
+                Backend Operational
+              </span>
+            ) : health?.status === "DEGRADED" ? (
+              <span className="text-xs px-3 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-mono font-medium">
+                Backend Degraded
+              </span>
+            ) : (
+              <span className="text-xs px-3 py-1 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 font-mono font-medium">
+                API Disconnected
+              </span>
+            )}
           </h1>
           <p className="text-base text-slate-400 mt-2">
             Real-time status of scientific data ingestion, calibrated neural models, and verified observation catalogs.
@@ -84,8 +150,28 @@ export default function OverviewDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="hidden sm:flex flex-col text-right font-mono text-xs text-slate-400">
+            <span>Last Sync: {lastFetched ? lastFetched.toLocaleTimeString() : "Syncing..."}</span>
+            <span className="flex items-center justify-end gap-1.5 text-[11px]">
+              <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? "bg-emerald-400 animate-pulse" : "bg-slate-400"}`}></span>
+              <span>{autoRefresh ? `Auto-refresh ${refreshCadenceSec}s` : "Auto-refresh paused"}</span>
+            </span>
+          </div>
+
           <button
-            onClick={fetchDashboardData}
+            onClick={() => setAutoRefresh((prev) => !prev)}
+            className={`px-3 py-2.5 rounded-xl text-xs font-mono font-medium border transition-colors ${
+              autoRefresh
+                ? "bg-cyan-500/10 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/20"
+                : "bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200"
+            }`}
+            title="Toggle automatic data polling cadence"
+          >
+            {autoRefresh ? "Pause Auto" : "Resume Auto"}
+          </button>
+
+          <button
+            onClick={() => fetchDashboardData(false)}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium bg-slate-800/60 hover:bg-slate-700/60 border border-slate-700 text-slate-300 transition-colors disabled:opacity-50"
           >
@@ -294,24 +380,67 @@ export default function OverviewDashboard() {
 
             {/* Adapters */}
             <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
-              <div className="text-xs text-slate-400 uppercase font-semibold tracking-wider">Satellite Adapters</div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-300">NOAA IBTrACS (NI)</span>
-                <span
-                  className={`font-semibold text-xs ${
-                    health?.adapters?.noaa_ibtracs ? "text-emerald-400" : "text-amber-400"
-                  }`}
-                >
-                  {health?.adapters?.noaa_ibtracs ? "AUTHENTIC ARCHIVE" : "UNAVAILABLE"}
-                </span>
+              <div className="text-xs text-slate-400 uppercase font-semibold tracking-wider flex items-center justify-between">
+                <span>Satellite Adapters</span>
+                <span className="text-[11px] font-mono text-slate-400">Live Health</span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-300">NOAA GOES-R (AWS Open Data)</span>
-                <span className="text-cyan-400 font-semibold text-xs">PUBLIC S3 HTTPS</span>
+
+              {/* NOAA IBTrACS */}
+              <div className="flex justify-between items-center text-sm font-mono">
+                <span className="text-slate-300 font-sans">NOAA IBTrACS (NI)</span>
+                {health?.adapters?.noaa_ibtracs?.connectivity?.status === "ARCHIVE_VERIFIED" ? (
+                  <span className="text-emerald-400 font-semibold text-xs">ARCHIVE VERIFIED</span>
+                ) : health ? (
+                  <span className="text-rose-400 font-semibold text-xs">ARCHIVE MISSING</span>
+                ) : (
+                  <span className="text-slate-400 font-semibold text-xs">API DISCONNECTED</span>
+                )}
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-300">ISRO INSAT-3D / MOSDAC</span>
-                <span className="text-amber-400 font-semibold text-xs">CREDENTIALS REQ</span>
+
+              {/* NOAA GOES */}
+              <div className="flex justify-between items-center text-sm font-mono">
+                <span className="text-slate-300 font-sans">NOAA GOES-R (AWS S3)</span>
+                {health?.adapters?.noaa_goes?.connectivity?.status === "CONNECTED" ? (
+                  <span className="text-cyan-400 font-semibold text-xs">
+                    CONNECTED ({health.adapters.noaa_goes.connectivity.latency_ms || 0}ms)
+                  </span>
+                ) : health?.adapters?.noaa_goes?.connectivity?.status === "DISCONNECTED" ? (
+                  <span className="text-rose-400 font-semibold text-xs">DISCONNECTED</span>
+                ) : health ? (
+                  <span className="text-amber-400 font-semibold text-xs">UNAVAILABLE</span>
+                ) : (
+                  <span className="text-slate-400 font-semibold text-xs">API DISCONNECTED</span>
+                )}
+              </div>
+
+              {/* NASA CMR */}
+              <div className="flex justify-between items-center text-sm font-mono">
+                <span className="text-slate-300 font-sans">NASA CMR Discovery</span>
+                {health?.adapters?.nasa_earthdata?.connectivity?.status === "CONNECTED" ? (
+                  <span className="text-teal-400 font-semibold text-xs">
+                    CONNECTED ({health.adapters.nasa_earthdata.connectivity.latency_ms || 0}ms)
+                  </span>
+                ) : health?.adapters?.nasa_earthdata?.connectivity?.status === "DISCONNECTED" ? (
+                  <span className="text-rose-400 font-semibold text-xs">DISCONNECTED</span>
+                ) : health ? (
+                  <span className="text-amber-400 font-semibold text-xs">UNAVAILABLE</span>
+                ) : (
+                  <span className="text-slate-400 font-semibold text-xs">API DISCONNECTED</span>
+                )}
+              </div>
+
+              {/* ISRO INSAT */}
+              <div className="flex justify-between items-center text-sm font-mono">
+                <span className="text-slate-300 font-sans">ISRO INSAT-3D / MOSDAC</span>
+                {health?.adapters?.isro_insat?.connectivity?.status === "ACCESS_REQUIRED" ? (
+                  <span className="text-amber-400 font-semibold text-xs">ACCESS REQUIRED</span>
+                ) : health?.adapters?.isro_insat?.connectivity?.status === "CONNECTED" ? (
+                  <span className="text-emerald-400 font-semibold text-xs">CONNECTED</span>
+                ) : health ? (
+                  <span className="text-amber-400 font-semibold text-xs">UNAVAILABLE</span>
+                ) : (
+                  <span className="text-slate-400 font-semibold text-xs">API DISCONNECTED</span>
+                )}
               </div>
             </div>
           </div>

@@ -6,7 +6,6 @@ import {
   IconSatellite,
   IconRefresh,
   IconAlert,
-  IconShield,
   IconSparkles,
 } from "@/components/icons";
 import { api, SystemSettings } from "@/lib/api";

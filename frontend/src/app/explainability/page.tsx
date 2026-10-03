@@ -24,9 +24,32 @@ function ExplainabilityContent() {
   const [result, setResult] = useState<ExplainabilityAnalysisResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [stormOptions, setStormOptions] = useState<Array<{ id: string; name: string; season: number; max_wind_kts?: number }>>([]);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [hoveredCell, setHoveredCell] = useState<{ x: number; y: number; val: number } | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    api
+      .getStormCatalog({ limit: 50 })
+      .then((cat) => {
+        if (isMounted && cat?.storms && cat.storms.length > 0) {
+          setStormOptions(
+            cat.storms.map((s) => ({
+              id: s.storm_id,
+              name: s.storm_name,
+              season: s.season,
+              max_wind_kts: s.peak_intensity_kts,
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -166,10 +189,20 @@ function ExplainabilityContent() {
               }}
               className="w-full py-2 px-3 bg-slate-900 border border-slate-700 rounded-xl text-cyan-300 focus:outline-none focus:border-cyan-500"
             >
-              <option value="2020136N10088">Cyclone AMPHAN (2020) — Super Cyclonic Storm (140 kts)</option>
-              <option value="2019117N09888">Cyclone FANI (2019) — Extremely Severe (115 kts)</option>
-              <option value="2023157N13066">Cyclone BIPARJOY (2023) — Very Severe (90 kts)</option>
-              <option value="2023130N11088">Cyclone MOCHA (2023) — Super Cyclonic Storm (145 kts)</option>
+              {stormOptions.length > 0 ? (
+                stormOptions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    Cyclone {s.name} ({s.season}) — Max Wind: {s.max_wind_kts || "—"} kts
+                  </option>
+                ))
+              ) : (
+                <>
+                  <option value="2020136N10088">Cyclone AMPHAN (2020) — Super Cyclonic Storm (140 kts)</option>
+                  <option value="2019117N09888">Cyclone FANI (2019) — Extremely Severe (115 kts)</option>
+                  <option value="2023157N13066">Cyclone BIPARJOY (2023) — Very Severe (90 kts)</option>
+                  <option value="2023130N11088">Cyclone MOCHA (2023) — Super Cyclonic Storm (145 kts)</option>
+                </>
+              )}
             </select>
           </div>
 

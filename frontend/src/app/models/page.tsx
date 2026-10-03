@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   IconCpu,
   IconShield,
@@ -16,7 +16,7 @@ export default function ModelBenchmarksPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -31,10 +31,34 @@ export default function ModelBenchmarksPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchReports();
+    let ignore = false;
+    async function init() {
+      try {
+        const [rData, mData] = await Promise.all([
+          api.getEvaluationReport(),
+          api.listMLModels(),
+        ]);
+        if (!ignore) {
+          setEvalReport(rData);
+          setModelCatalog(mData || []);
+        }
+      } catch (err: unknown) {
+        if (!ignore) {
+          setError(err instanceof Error ? err.message : "Failed to load evaluation reports from backend");
+        }
+      } finally {
+        if (!ignore) {
+          setLoading(false);
+        }
+      }
+    }
+    init();
+    return () => {
+      ignore = true;
+    };
   }, []);
 
   return (

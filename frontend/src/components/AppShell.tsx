@@ -198,11 +198,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex justify-between items-center text-slate-300">
               <span className="font-semibold">Compute Hardware</span>
               <span className="text-cyan-400 text-xs font-semibold">
-                {health?.compute?.gpu?.available ? "GPU ACTIVE" : "CPU FALLBACK"}
+                {health?.compute?.gpu?.available ? "GPU ACCELERATED" : "CPU MODE"}
               </span>
             </div>
-            <div className="text-xs text-slate-500 truncate">
-              {health?.compute?.gpu?.device_name || "AMD Ryzen 5 5600H / CPU"}
+            <div className="text-xs text-slate-500 truncate" title={health?.compute?.gpu?.device_name || health?.compute?.platform || "Hardware details"}>
+              {health?.compute?.gpu?.device_name || (health?.compute?.platform ? health.compute.platform : (health ? "Unknown / unavailable" : "Detecting compute..."))}
             </div>
             <div className="pt-2 border-t border-slate-800/60 flex justify-between text-xs">
               <span>DB Dialect:</span>

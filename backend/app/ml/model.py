@@ -27,22 +27,43 @@ class CycloneModelRegistry:
     """
 
     MODELS_DIR = Path(__file__).resolve().parent.parent.parent / "models"
+    CHECKPOINTS_DIR = Path(__file__).resolve().parent.parent.parent / "models" / "checkpoints"
 
     @classmethod
     def get_registered_models(cls) -> List[ModelInfo]:
-        cls.MODELS_DIR.mkdir(parents=True, exist_ok=True)
-        checkpoint_file = cls.MODELS_DIR / "cyclone_densenet_v1.pt"
+        cls.CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
+        fusion_pt = cls.CHECKPOINTS_DIR / "cyclone_fusion_v1.0.0.pt"
+        image_pt = cls.CHECKPOINTS_DIR / "cyclone_image_v1.0.0.pt"
+        env_pt = cls.CHECKPOINTS_DIR / "cyclone_env_v1.0.0.pt"
 
         return [
             ModelInfo(
-                model_id="cyclone_densenet_v1",
+                model_id="cyclone_fusion_v1",
                 version="1.0.0",
-                weights_path=str(checkpoint_file) if checkpoint_file.exists() else None,
-                is_loaded=checkpoint_file.exists(),
+                weights_path=str(fusion_pt) if fusion_pt.exists() else None,
+                is_loaded=fusion_pt.exists(),
+                input_channels=["clean_ir_10_35", "water_vapor_6_2", "environmental_covariates_8dim"],
+                input_resolution=[128, 128],
+                description="Deep convective multimodal fusion model (2-channel CNN + 8-dim MLP).",
+            ),
+            ModelInfo(
+                model_id="cyclone_image_v1",
+                version="1.0.0",
+                weights_path=str(image_pt) if image_pt.exists() else None,
+                is_loaded=image_pt.exists(),
                 input_channels=["clean_ir_10_35", "water_vapor_6_2"],
                 input_resolution=[128, 128],
-                description="Deep convective spatial pattern model for tropical cyclone intensity estimation.",
-            )
+                description="Deep convective spatial pattern model with Grad-CAM explainability hooks.",
+            ),
+            ModelInfo(
+                model_id="cyclone_env_v1",
+                version="1.0.0",
+                weights_path=str(env_pt) if env_pt.exists() else None,
+                is_loaded=env_pt.exists(),
+                input_channels=["environmental_covariates_8dim"],
+                input_resolution=[],
+                description="Atmospheric and kinematic environmental covariate model.",
+            ),
         ]
 
     @classmethod

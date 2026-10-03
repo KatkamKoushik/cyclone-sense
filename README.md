@@ -88,6 +88,8 @@ flowchart LR
     Endpoints <--> Frontend
 ```
 
+For the formal architecture specification, empirical benchmark comparisons, and delivery roadmap for the SANKALP evaluation, see [Final Technology Stack & Technical Approach](file:///d:/CycloneSense/docs/architecture/FINAL_TECHNOLOGY_STACK_AND_TECHNICAL_APPROACH.md).
+
 ---
 
 ## Key Technical Features

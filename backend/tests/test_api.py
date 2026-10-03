@@ -127,7 +127,8 @@ async def test_ml_evaluation_report_endpoint():
 async def test_ml_inference_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        payload = {
+        # 1. Test invalid input: multimodal fusion without required satellite product_id must be rejected (HTTP 400)
+        invalid_payload = {
             "model_type": "fusion",
             "center_latitude": 18.5,
             "center_longitude": 88.0,
@@ -137,19 +138,59 @@ async def test_ml_inference_endpoint():
             "storm_id": "TEST_AMPHAN",
             "storm_name": "AMPHAN",
         }
-        resp = await ac.post("/api/v1/ml/inference", json=payload)
-    assert resp.status_code == 200
-    res = resp.json()
-    assert res["model_type"] == "multimodal_fusion"
-    assert "predicted_intensity_kts" in res
-    assert res["predicted_intensity_kts"] > 0
-    assert "predicted_category" in res
-    assert 0 <= res["predicted_category"] <= 4
-    assert len(res["category_probabilities"]) == 5
-    assert "gradcam_explainability" in res
-    assert "causal_disclaimer" in res["gradcam_explainability"]
-    assert "environmental_attribution" in res
-    assert len(res["environmental_attribution"]["ranked_features"]) == 8
+        rej_resp = await ac.post("/api/v1/ml/inference", json=invalid_payload)
+        assert rej_resp.status_code == 400
+        assert "requires an authentic 2D satellite product tensor" in rej_resp.json()["detail"]
+
+        # 2. Test valid environmental model inference (only requires environmental covariates, no satellite tensor)
+        env_payload = {
+            "model_type": "environment",
+            "center_latitude": 18.5,
+            "center_longitude": 88.0,
+            "forward_speed_kmh": 22.0,
+            "forward_bearing_deg": 320.0,
+            "pressure_hpa": 975.0,
+            "storm_id": "TEST_AMPHAN",
+            "storm_name": "AMPHAN",
+        }
+        env_resp = await ac.post("/api/v1/ml/inference", json=env_payload)
+        assert env_resp.status_code == 200
+        env_res = env_resp.json()
+        assert env_res["model_type"] == "environment_only"
+        assert env_res["predicted_intensity_kts"] > 0
+        assert "environmental_attribution" in env_res
+
+        # 3. Test valid multimodal fusion inference with genuine ingested satellite product
+        prod_resp = await ac.get("/api/v1/ingest?limit=1")
+        assert prod_resp.status_code == 200
+        products = prod_resp.json()
+        assert len(products) > 0
+        target_product_id = products[0]["id"]
+
+        valid_payload = {
+            "model_type": "fusion",
+            "product_id": target_product_id,
+            "center_latitude": 18.5,
+            "center_longitude": 88.0,
+            "forward_speed_kmh": 22.0,
+            "forward_bearing_deg": 320.0,
+            "pressure_hpa": 975.0,
+            "storm_id": "TEST_AMPHAN",
+            "storm_name": "AMPHAN",
+        }
+        resp = await ac.post("/api/v1/ml/inference", json=valid_payload)
+        assert resp.status_code == 200
+        res = resp.json()
+        assert res["model_type"] == "multimodal_fusion"
+        assert "predicted_intensity_kts" in res
+        assert res["predicted_intensity_kts"] > 0
+        assert "predicted_category" in res
+        assert 0 <= res["predicted_category"] <= 4
+        assert len(res["category_probabilities"]) == 5
+        assert "gradcam_explainability" in res
+        assert "causal_disclaimer" in res["gradcam_explainability"]
+        assert "environmental_attribution" in res
+        assert len(res["environmental_attribution"]["ranked_features"]) == 8
 
 
 @pytest.mark.asyncio
@@ -176,7 +217,11 @@ async def test_storm_catalog_and_track_endpoints():
 async def test_analysis_job_lifecycle():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # Use a real storm from the catalog for test, not a fabricated "TEST_STORM"
+        # Get an authentic satellite product
+        prod_resp = await ac.get("/api/v1/ingest?limit=1")
+        products = prod_resp.json()
+        product_id = products[0]["id"] if products else None
+
         cat_resp = await ac.get("/api/v1/storms/catalog?search=AMPHAN")
         storms = cat_resp.json()["storms"]
         if not storms:
@@ -186,6 +231,7 @@ async def test_analysis_job_lifecycle():
 
         payload = {
             "model_type": "fusion",
+            "product_id": product_id,
             "center_latitude": 15.0,
             "center_longitude": 88.0,
             "forward_speed_kmh": 20.0,
@@ -213,31 +259,48 @@ async def test_analysis_job_lifecycle():
 
         # Cleanup: delete the test-created job so it doesn't pollute the production dashboard
         delete_resp = await ac.delete(f"/api/v1/ml/jobs/{job_data['job_id']}")
-        assert delete_resp.status_code in [200, 204, 404]  # 404 acceptable if already cleaned
+        assert delete_resp.status_code in [200, 204, 404]
 
 
 @pytest.mark.asyncio
 async def test_temporal_comparison_endpoint():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # Get a storm with multiple observations
         cat_resp = await ac.get("/api/v1/storms/catalog?limit=5")
         storms = cat_resp.json()["storms"]
         multi_obs_storm = next((s for s in storms if s["obs_count"] >= 2), None)
         assert multi_obs_storm is not None
 
-        payload = {
+        # 1. Compare without satellite products -> computes authentic kinematics & track intensity evolution
+        payload_track_only = {
             "storm_id": multi_obs_storm["storm_id"],
             "obs_index_t1": 0,
             "obs_index_t2": 1,
         }
-        resp = await ac.post("/api/v1/ml/temporal-comparison", json=payload)
+        resp = await ac.post("/api/v1/ml/temporal-comparison", json=payload_track_only)
         assert resp.status_code == 200
         data = resp.json()
         assert "translational_motion" in data
-        assert "structural_evolution" in data
         assert "intensity_evolution" in data
-        assert "delta_eyewall_cooling_kelvin" in data["structural_evolution"]
+        assert data["structural_evolution"] is None  # Accurately reflects no synthetic fallback
+
+        # 2. Compare WITH authentic satellite products -> computes structural differential
+        prod_resp = await ac.get("/api/v1/ingest?limit=2")
+        products = prod_resp.json()
+        if products:
+            pid = products[0]["id"]
+            payload_with_sat = {
+                "storm_id": multi_obs_storm["storm_id"],
+                "obs_index_t1": 0,
+                "obs_index_t2": 1,
+                "product_id_t1": pid,
+                "product_id_t2": pid,
+            }
+            resp_sat = await ac.post("/api/v1/ml/temporal-comparison", json=payload_with_sat)
+            assert resp_sat.status_code == 200
+            data_sat = resp_sat.json()
+            assert data_sat["structural_evolution"] is not None
+            assert "delta_eyewall_cooling_kelvin" in data_sat["structural_evolution"]
 
 
 @pytest.mark.asyncio

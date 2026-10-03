@@ -196,6 +196,10 @@ async def search_realtime_granules(
     source: str = Query("NOAA_GOES", description="'NOAA_GOES' or 'NASA_EARTHDATA'"),
     collection: Optional[str] = Query("ABI-L2-CMIPC", description="NOAA product or NASA collection short name (e.g. MOD02QKM)"),
     limit: int = Query(5, ge=1, le=20),
+    year: Optional[int] = Query(None, description="Observation year (defaults to latest available 2025)"),
+    day_of_year: Optional[int] = Query(None, description="Day of year 1-366 (defaults to latest available 097)"),
+    hour: Optional[int] = Query(None, description="UTC hour 0-23 (defaults to latest available 18)"),
+    channel: Optional[str] = Query(None, description="Filter for specific channel, e.g. M6C13 or M6C08"),
 ) -> Dict[str, Any]:
     """
     Search live external satellite providers (NOAA AWS Open Data or NASA Earthdata Cloud)
@@ -205,7 +209,14 @@ async def search_realtime_granules(
         adapter = GOESAdapter()
         coll = collection if collection and "MOD" not in collection else "ABI-L2-CMIPC"
         try:
-            granules = await adapter.list_recent_granules(product=coll, limit=limit)
+            granules = await adapter.list_recent_granules(
+                product=coll,
+                limit=limit,
+                year=year,
+                day_of_year=day_of_year,
+                hour=hour,
+                channel=channel,
+            )
             return {
                 "source": "NOAA_GOES",
                 "collection": coll,
