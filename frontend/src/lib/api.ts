@@ -4,7 +4,33 @@
  * Zero mocks or synthetic placeholders.
  */
 
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+/**
+ * Resolves the CycloneSense API Base URL.
+ * - Runtime Functions (Node.js/SSR): Reads Vercel Service Binding `process.env.BACKEND_URL`
+ * - Browser Runtime: Uses `process.env.NEXT_PUBLIC_API_URL` or relative `/api/v1` (routed via Vercel rewrite)
+ * - Local / Testing: Falls back to `http://localhost:8000/api/v1`
+ */
+export function getApiBaseUrl(): string {
+  // 1. Server-side runtime (Node.js / SSR / Vercel Serverless Function)
+  if (typeof window === "undefined") {
+    if (process.env.BACKEND_URL) {
+      const raw = process.env.BACKEND_URL.replace(/\/+$/, "");
+      return raw.endsWith("/api/v1") ? raw : `${raw}/api/v1`;
+    }
+    if (process.env.NEXT_PUBLIC_API_URL) {
+      return process.env.NEXT_PUBLIC_API_URL;
+    }
+    return "http://localhost:8000/api/v1";
+  }
+
+  // 2. Browser runtime: use public API URL or relative route matching Vercel rewrite
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  return "/api/v1";
+}
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export interface SystemHealth {
   status: "OPERATIONAL" | "DEGRADED" | "OFFLINE";
@@ -457,7 +483,18 @@ export interface EvaluationReport {
 }
 
 async function fetchJSON<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
+  let targetUrl = url;
+  // If executing inside a Vercel serverless function with BACKEND_URL service binding:
+  if (typeof window === "undefined" && process.env.BACKEND_URL) {
+    const backendBase = process.env.BACKEND_URL.replace(/\/+$/, "");
+    if (targetUrl.startsWith("/api/v1")) {
+      targetUrl = `${backendBase}${targetUrl}`;
+    } else if (targetUrl.startsWith("http://localhost:8000/api/v1")) {
+      targetUrl = targetUrl.replace("http://localhost:8000", backendBase);
+    }
+  }
+
+  const response = await fetch(targetUrl, {
     ...init,
     headers: {
       "Accept": "application/json",
