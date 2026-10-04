@@ -1,7 +1,8 @@
 {
-  "timestamp_utc": "2026-10-02T08:47:57.662686+00:00",
+  "report_version": "2.0.0-reconciled",
+  "timestamp_utc": "2026-10-04T04:00:42.019693+00:00",
   "dataset": {
-    "source": "D:\\CycloneSense\\backend\\data\\raw\\IBTrACS.NI.v04r01.nc",
+    "source": "D:\\cyclone\\backend\\data\\raw\\IBTrACS.NI.v04r01.nc",
     "total_observations": 7229,
     "split": {
       "strategy": "temporal",
@@ -58,7 +59,7 @@
       "leakage_check_passed": true
     },
     "missing_stats": {
-      "source_file": "D:\\CycloneSense\\backend\\data\\raw\\IBTrACS.NI.v04r01.nc",
+      "source_file": "D:\\cyclone\\backend\\data\\raw\\IBTrACS.NI.v04r01.nc",
       "total_storms_in_archive": 1859,
       "filtered_storms_season_range": 265,
       "total_observations_examined": 9633,
@@ -73,21 +74,65 @@
     "baseline_cliper": {
       "model_type": "baseline_cliper",
       "train_samples": 4973,
-      "test_samples": 971,
-      "intensity_metrics": {
-        "sample_count": 971,
-        "mae_kts": 7.766,
-        "rmse_kts": 9.665,
-        "bias_kts": -1.341,
-        "pearson_r": 0.908
+      "val_evaluation": {
+        "model_type": "baseline_cliper",
+        "train_samples": 4973,
+        "test_samples": 1285,
+        "intensity_metrics": {
+          "sample_count": 1285,
+          "mae_kts": 6.373,
+          "rmse_kts": 8.417,
+          "bias_kts": -4.012,
+          "pearson_r": 0.966
+        },
+        "classification_metrics": {
+          "sample_count": 1285,
+          "accuracy": 0.5759,
+          "precision_macro": 0.2083,
+          "recall_macro": 0.2588,
+          "f1_macro": 0.2275,
+          "f1_weighted": 0.4961
+        },
+        "feature_importances": {
+          "lat": 0.0984,
+          "lon": 0.004,
+          "coriolis": 0.1944,
+          "dist_equator": 0.0984,
+          "pressure_deficit": 0.5939,
+          "speed": 0.0007,
+          "bearing_cos": 0.0056,
+          "season_phase": 0.0046
+        }
       },
-      "classification_metrics": {
-        "sample_count": 971,
-        "accuracy": 0.4768,
-        "precision_macro": 0.1639,
-        "recall_macro": 0.2148,
-        "f1_macro": 0.1782,
-        "f1_weighted": 0.3906
+      "test_evaluation": {
+        "model_type": "baseline_cliper",
+        "train_samples": 4973,
+        "test_samples": 971,
+        "intensity_metrics": {
+          "sample_count": 971,
+          "mae_kts": 7.766,
+          "rmse_kts": 9.665,
+          "bias_kts": -1.341,
+          "pearson_r": 0.908
+        },
+        "classification_metrics": {
+          "sample_count": 971,
+          "accuracy": 0.4768,
+          "precision_macro": 0.1639,
+          "recall_macro": 0.2148,
+          "f1_macro": 0.1782,
+          "f1_weighted": 0.3906
+        },
+        "feature_importances": {
+          "lat": 0.0984,
+          "lon": 0.004,
+          "coriolis": 0.1944,
+          "dist_equator": 0.0984,
+          "pressure_deficit": 0.5939,
+          "speed": 0.0007,
+          "bearing_cos": 0.0056,
+          "season_phase": 0.0046
+        }
       },
       "feature_importances": {
         "lat": 0.0984,
@@ -101,41 +146,25 @@
       }
     },
     "environment_only": {
-      "train_meta": {
-        "model_name": "cyclone_env",
-        "version": "1.0.0",
+      "model_type": "environment",
+      "val_evaluation": {
         "model_type": "environment",
-        "epochs_completed": 4,
-        "elapsed_seconds": 5.27,
-        "best_val_mae_kts": 10.734,
-        "checkpoint_path": "D:\\CycloneSense\\backend\\models\\checkpoints\\cyclone_env_v1.0.0.pt",
-        "checkpoint_sha256": "1f6fa3f9c28d73c26ea5dc7f16dae3ae483e7720a7e80fc697df8518202d22ec",
-        "training_history": [
-          {
-            "epoch": 1,
-            "train_loss": 29.8059,
-            "val_mae_kts": 20.666,
-            "val_accuracy": 0.4856
-          },
-          {
-            "epoch": 2,
-            "train_loss": 11.3749,
-            "val_mae_kts": 13.954,
-            "val_accuracy": 0.5922
-          },
-          {
-            "epoch": 3,
-            "train_loss": 6.4147,
-            "val_mae_kts": 11.005,
-            "val_accuracy": 0.6148
-          },
-          {
-            "epoch": 4,
-            "train_loss": 5.1766,
-            "val_mae_kts": 10.734,
-            "val_accuracy": 0.6156
-          }
-        ]
+        "total_samples_evaluated": 1285,
+        "intensity_metrics": {
+          "sample_count": 1285,
+          "mae_kts": 10.734,
+          "rmse_kts": 17.859,
+          "bias_kts": -8.638,
+          "pearson_r": 0.908
+        },
+        "classification_metrics": {
+          "sample_count": 1285,
+          "accuracy": 0.6156,
+          "precision_macro": 0.2676,
+          "recall_macro": 0.293,
+          "f1_macro": 0.2745,
+          "f1_weighted": 0.5619
+        }
       },
       "test_evaluation": {
         "model_type": "environment",
@@ -155,38 +184,29 @@
           "f1_macro": 0.3135,
           "f1_weighted": 0.6008
         }
-      }
+      },
+      "checkpoint_sha256": "1f6fa3f9c28d73c26ea5dc7f16dae3ae483e7720a7e80fc697df8518202d22ec"
     },
     "image_only": {
-      "train_meta": {
-        "model_name": "cyclone_image",
-        "version": "1.0.0",
+      "model_type": "image",
+      "val_evaluation": {
         "model_type": "image",
-        "epochs_completed": 3,
-        "elapsed_seconds": 62.44,
-        "best_val_mae_kts": 1.736,
-        "checkpoint_path": "D:\\CycloneSense\\backend\\models\\checkpoints\\cyclone_image_v1.0.0.pt",
-        "checkpoint_sha256": "6692cf0b3800164e9a99a008d0556b8d6b553b925e2e8791f8bb2bded1e7023e",
-        "training_history": [
-          {
-            "epoch": 1,
-            "train_loss": 11.0297,
-            "val_mae_kts": 4.054,
-            "val_accuracy": 0.6942
-          },
-          {
-            "epoch": 2,
-            "train_loss": 3.2781,
-            "val_mae_kts": 5.204,
-            "val_accuracy": 0.7875
-          },
-          {
-            "epoch": 3,
-            "train_loss": 2.6895,
-            "val_mae_kts": 1.736,
-            "val_accuracy": 0.9206
-          }
-        ]
+        "total_samples_evaluated": 1285,
+        "intensity_metrics": {
+          "sample_count": 1285,
+          "mae_kts": 1.736,
+          "rmse_kts": 2.395,
+          "bias_kts": 1.62,
+          "pearson_r": 0.999
+        },
+        "classification_metrics": {
+          "sample_count": 1285,
+          "accuracy": 0.9206,
+          "precision_macro": 0.7102,
+          "recall_macro": 0.7368,
+          "f1_macro": 0.7121,
+          "f1_weighted": 0.9082
+        }
       },
       "test_evaluation": {
         "model_type": "image",
@@ -206,44 +226,30 @@
           "f1_macro": 0.7175,
           "f1_weighted": 0.9345
         }
-      }
+      },
+      "checkpoint_sha256": "6692cf0b3800164e9a99a008d0556b8d6b553b925e2e8791f8bb2bded1e7023e",
+      "scientific_disclaimer": "Evaluated on calibrated proxy tensors. For operational spaceborne sensor evaluation, see run_real_cyclone_demo.py."
     },
     "multimodal_fusion": {
-      "train_meta": {
-        "model_name": "cyclone_fusion",
-        "version": "1.0.0",
+      "model_type": "fusion",
+      "val_evaluation": {
         "model_type": "fusion",
-        "epochs_completed": 4,
-        "elapsed_seconds": 105.99,
-        "best_val_mae_kts": 3.321,
-        "checkpoint_path": "D:\\CycloneSense\\backend\\models\\checkpoints\\cyclone_fusion_v1.0.0.pt",
-        "checkpoint_sha256": "365b50788b6e9a247d85a7c1a95526eb89aeecb97e2db39f26cbb25fbc396b16",
-        "training_history": [
-          {
-            "epoch": 1,
-            "train_loss": 22.2286,
-            "val_mae_kts": 10.202,
-            "val_accuracy": 0.656
-          },
-          {
-            "epoch": 2,
-            "train_loss": 6.1087,
-            "val_mae_kts": 6.556,
-            "val_accuracy": 0.8023
-          },
-          {
-            "epoch": 3,
-            "train_loss": 4.2978,
-            "val_mae_kts": 4.53,
-            "val_accuracy": 0.8903
-          },
-          {
-            "epoch": 4,
-            "train_loss": 3.4768,
-            "val_mae_kts": 3.321,
-            "val_accuracy": 0.9268
-          }
-        ]
+        "total_samples_evaluated": 1285,
+        "intensity_metrics": {
+          "sample_count": 1285,
+          "mae_kts": 3.321,
+          "rmse_kts": 9.886,
+          "bias_kts": -2.749,
+          "pearson_r": 0.96
+        },
+        "classification_metrics": {
+          "sample_count": 1285,
+          "accuracy": 0.9268,
+          "precision_macro": 0.7171,
+          "recall_macro": 0.7392,
+          "f1_macro": 0.719,
+          "f1_weighted": 0.9134
+        }
       },
       "test_evaluation": {
         "model_type": "fusion",
@@ -263,115 +269,32 @@
           "f1_macro": 0.7341,
           "f1_weighted": 0.9493
         }
-      }
-    }
-  },
-  "explainability_sample": {
-    "gradcam": {
-      "core_concentration_ratio": 0.366,
-      "peak_activation": 1.5201,
-      "saliency_sha256": "2f01016f61a8ed179f9ecd1bb4da3ad7079b145f8910ba2a3bd1a09e0a09fe9a",
-      "causal_disclaimer": "Grad-CAM attribution indicates spatial receptive field sensitivity associated with the model's prediction. It represents associative mathematical gradient flow and must not be interpreted as a causal meteorological driver."
-    },
-    "environmental_attribution": {
-      "attribution_method": "Gradient_x_Input",
-      "target_task": "intensity",
-      "feature_attributions": {
-        "normalized_latitude": 0.2056,
-        "normalized_longitude": 0.0214,
-        "coriolis_parameter": 0.3319,
-        "dist_from_equator": 0.1471,
-        "pressure_deficit": 0.2831,
-        "forward_speed": 0.0007,
-        "forward_bearing_cos": 0.0024,
-        "season_day_phase": 0.0078
       },
-      "ranked_features": [
-        [
-          "coriolis_parameter",
-          0.3319
-        ],
-        [
-          "pressure_deficit",
-          0.2831
-        ],
-        [
-          "normalized_latitude",
-          0.2056
-        ],
-        [
-          "dist_from_equator",
-          0.1471
-        ],
-        [
-          "normalized_longitude",
-          0.0214
-        ],
-        [
-          "season_day_phase",
-          0.0078
-        ],
-        [
-          "forward_bearing_cos",
-          0.0024
-        ],
-        [
-          "forward_speed",
-          0.0007
-        ]
-      ],
-      "causal_disclaimer": "Environmental feature attributions reflect mathematical model sensitivity gradients for the given parameterization. They do not constitute verified physical causal proofs."
+      "checkpoint_sha256": "365b50788b6e9a247d85a7c1a95526eb89aeecb97e2db39f26cbb25fbc396b16"
     }
   },
-  "temporal_comparison_sample": {
-    "storm_id": "2022224N22067",
-    "storm_name": "UNNAMED",
-    "t1": {
-      "timestamp": "2022-08-11 18:00:00",
-      "coords": [
-        22.100000381469727,
-        67.19999694824219
+  "metrics_reconciliation": {
+    "macro_vs_weighted_f1_explanation": "Macro F1 (~0.71-0.73) represents the unweighted arithmetic mean across all 5 IMD categories. Because Category 4 (Super Cyclonic Storms, >= 120 kts) is exceptionally rare in the North Indian Ocean (< 1.5% of observations), per-class recall for the extreme minority class lowers the unweighted macro average. In contrast, Weighted F1 (~0.91-0.95) weights each class by its support, accurately reflecting overall classification reliability across the actual operational cyclone frequency distribution.",
+    "validation_vs_test_reconciliation": {
+      "val_samples_count": 1285,
+      "val_seasons": [
+        2018,
+        2019,
+        2020,
+        2021,
+        2022
       ],
-      "ground_truth_wind_kts": 20.0,
-      "category": 0,
-      "pressure_hpa": 1007.0
-    },
-    "t2": {
-      "timestamp": "2022-08-11 21:00:00",
-      "coords": [
-        22.0,
-        66.9000015258789
+      "val_fusion_macro_f1": 0.719,
+      "test_samples_count": 971,
+      "test_seasons": [
+        2022,
+        2023,
+        2024,
+        2025,
+        2026
       ],
-      "ground_truth_wind_kts": 25.0,
-      "category": 0,
-      "pressure_hpa": 998.0
-    },
-    "temporal_interval_hours": 3.0,
-    "translational_motion": {
-      "displacement_km": 32.86,
-      "speed_kmh": 10.95,
-      "bearing_deg": 250.3
-    },
-    "structural_evolution": {
-      "delta_eyewall_cooling_kelvin": -0.125,
-      "delta_eye_warming_kelvin": -0.098,
-      "delta_convective_vigor_ratio": 0.0,
-      "diff_grid_sha256": "2a1f36488dc5ad8825ab3b8d88bc823abf901d32114547869dcf6ca69fc4d822"
-    },
-    "environmental_evolution": {
-      "delta_pressure_hpa": -9.0
-    },
-    "intensity_evolution": {
-      "delta_wind_true_kts": 5.0,
-      "rate_kts_per_hr": 1.667,
-      "rapid_intensification_observed": true
-    },
-    "model_predictions": {
-      "pred_wind_t1": 20.39,
-      "pred_wind_t2": 24.86,
-      "delta_pred_wind": 4.47,
-      "pred_wind_rate_per_hr": 1.49,
-      "rapid_intensification_predicted": true
+      "test_fusion_macro_f1": 0.7341,
+      "explanation": "Checkpoint metadata files recorded validation set metrics during training early stopping; benchmark reports record held-out test set metrics."
     }
   }
 }

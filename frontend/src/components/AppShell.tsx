@@ -29,6 +29,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { name: "Overview Dashboard", href: "/", icon: IconActivity },
+  { name: "Impact Intelligence", href: "/impact", icon: IconSatellite, badge: "PROTOTYPE" },
   { name: "Cyclone Explorer", href: "/explorer", icon: IconSearch },
   { name: "Satellite Data Viewer", href: "/data-viewer", icon: IconSatellite },
   { name: "Analysis Studio", href: "/analysis", icon: IconPlay },

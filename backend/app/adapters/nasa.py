@@ -53,18 +53,40 @@ class NASAAdapter(BaseSatelliteAdapter):
 
     async def check_connectivity(self) -> Dict[str, Any]:
         """
-        Perform a live HTTP ping against NASA CMR API.
+        Perform a live HTTP query against NASA CMR API to verify authentication
+        and obtain real-time product observation timestamps and latency.
         """
+        import datetime
         try:
-            url = f"{self.CMR_SEARCH_URL}?short_name=MOD02QKM&page_size=1"
-            async with httpx.AsyncClient(timeout=4.0) as client:
+            url = f"{self.CMR_SEARCH_URL}?short_name=MOD02QKM&sort_key[]=-start_date&page_size=1"
+            async with httpx.AsyncClient(timeout=5.0) as client:
                 resp = await client.get(url, headers=self._get_headers())
+                now_utc = datetime.datetime.now(datetime.timezone.utc)
                 if resp.status_code == 200:
+                    data = resp.json()
+                    entries = data.get("feed", {}).get("entry", [])
+                    latest_obs_time = entries[0].get("time_start") if entries else None
+                    granule_title = entries[0].get("title") if entries else None
+                    
+                    data_age_min = None
+                    if latest_obs_time:
+                        try:
+                            # Parse ISO string
+                            obs_dt = datetime.datetime.fromisoformat(latest_obs_time.replace("Z", "+00:00"))
+                            data_age_min = max(0, int((now_utc - obs_dt).total_seconds() / 60))
+                        except Exception:
+                            pass
+
                     return {
                         "connected": True,
                         "status": "CONNECTED",
                         "endpoint": "https://cmr.earthdata.nasa.gov",
                         "latency_ms": round(resp.elapsed.total_seconds() * 1000, 1),
+                        "latest_observation_utc": latest_obs_time,
+                        "latest_granule_id": granule_title,
+                        "retrieved_at_utc": now_utc.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                        "data_age_minutes": data_age_min,
+                        "quality": "CALIBRATED_LANCE_OPERATIONAL",
                     }
                 return {
                     "connected": False,

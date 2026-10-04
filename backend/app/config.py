@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     # Redis & Asynchronous Job Configuration
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_TASK_ALWAYS_EAGER: bool = True  # In-process execution mode when Redis broker is offline
+    POLLING_INTERVAL_SECONDS: int = 1800   # Automated satellite polling cadence (30 minutes)
     
     # Storage Paths
     BASE_DIR: Path = Path(__file__).resolve().parent.parent

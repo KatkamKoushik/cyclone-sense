@@ -8,13 +8,19 @@ from backend.app.api.routes_storms import router as storms_router
 from backend.app.api.routes_provenance import router as provenance_router
 from backend.app.api.routes_system import router as system_router
 from backend.app.api.routes_ml import router as ml_router
+from backend.app.api.routes_impact import router as impact_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize database tables on startup
     await init_db()
+    # Start background satellite telemetry freshness scheduler
+    from backend.app.services.scheduler import telemetry_freshness_manager
+    telemetry_freshness_manager.start()
     yield
+    # Graceful shutdown of background scheduler
+    telemetry_freshness_manager.stop()
 
 
 app = FastAPI(
@@ -24,10 +30,19 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS configuration for Next.js frontend
+# CORS configuration: trusted local frontend origins with development fallback
+cors_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+if settings.ENVIRONMENT == "development":
+    cors_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Development configuration
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -39,6 +54,7 @@ app.include_router(ingest_router, prefix=settings.API_V1_STR)
 app.include_router(storms_router, prefix=settings.API_V1_STR)
 app.include_router(provenance_router, prefix=settings.API_V1_STR)
 app.include_router(ml_router, prefix=settings.API_V1_STR)
+app.include_router(impact_router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")

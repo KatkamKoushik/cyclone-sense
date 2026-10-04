@@ -253,3 +253,27 @@ async def test_adapter_connection(payload: Dict[str, str]) -> Dict[str, Any]:
             "message": f"Unknown adapter '{adapter_name}'.",
         }
 
+
+@router.get("/telemetry-freshness")
+async def get_telemetry_freshness():
+    """
+    Return live satellite data freshness timestamps and basin monitoring status.
+    Demonstrates active satellite telemetry feeds vs. historical retrospective benchmark archive.
+    """
+    from backend.app.services.scheduler import telemetry_freshness_manager
+    state = telemetry_freshness_manager.get_freshness_state()
+    # If state not yet initialized, perform initial poll
+    if state["nasa_earthdata"]["latest_observation_utc"] is None:
+        state = await telemetry_freshness_manager.poll_once()
+    return state
+
+
+@router.post("/telemetry/poll-now")
+async def poll_telemetry_now():
+    """Manually trigger immediate satellite telemetry freshness polling."""
+    from backend.app.services.scheduler import telemetry_freshness_manager
+    state = await telemetry_freshness_manager.poll_once()
+    return {"message": "Telemetry poll completed successfully", "freshness": state}
+
+
+

@@ -576,4 +576,367 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ source, granule_identifier: granuleIdentifier }),
     }),
+
+  getLocationPresets: () => fetchJSON<LocationPreset[]>(`${API_BASE_URL}/storms/presets`),
+
+  searchStormsByLocation: (params: {
+    query?: string;
+    latitude?: number;
+    longitude?: number;
+    radius_km?: number;
+    min_wind_kts?: number;
+  }) => {
+    const q = new URLSearchParams();
+    if (params.query) q.append("query", params.query);
+    if (params.latitude !== undefined) q.append("latitude", params.latitude.toString());
+    if (params.longitude !== undefined) q.append("longitude", params.longitude.toString());
+    if (params.radius_km !== undefined) q.append("radius_km", params.radius_km.toString());
+    if (params.min_wind_kts !== undefined) q.append("min_wind_kts", params.min_wind_kts.toString());
+    return fetchJSON<LocationSearchResponse>(`${API_BASE_URL}/storms/search/location?${q.toString()}`);
+  },
+
+  getTelemetryFreshness: () =>
+    fetchJSON<TelemetryFreshnessResponse>(`${API_BASE_URL}/system/telemetry-freshness`),
+
+  // Impact Intelligence Methods
+  listImpactCyclones: () =>
+    fetchJSON<ImpactCycloneSummary[]>(`${API_BASE_URL}/impact/cyclones`),
+
+  listImpactLocations: () =>
+    fetchJSON<ImpactLocationSummary[]>(`${API_BASE_URL}/impact/locations`),
+
+  getLocationImpactProfile: (latitude?: number, longitude?: number, radiusKm?: number) => {
+    const q = new URLSearchParams();
+    if (latitude !== undefined) q.append("latitude", latitude.toString());
+    if (longitude !== undefined) q.append("longitude", longitude.toString());
+    if (radiusKm !== undefined) q.append("radius_km", radiusKm.toString());
+    return fetchJSON<LocationImpactProfile>(`${API_BASE_URL}/impact/location-profile?${q.toString()}`);
+  },
+
+  getBeforeAfterPair: (cycloneName: string, locationName: string, sensorType: "OPTICAL" | "SAR") =>
+    fetchJSON<BeforeAfterPairInfo>(
+      `${API_BASE_URL}/impact/before-after?cyclone_name=${encodeURIComponent(cycloneName)}&location_name=${encodeURIComponent(locationName)}&sensor_type=${encodeURIComponent(sensorType)}`
+    ),
+
+  analyzeImpact: (payload: {
+    cyclone_name: string;
+    location_name: string;
+    sensor_type: "OPTICAL" | "SAR";
+    vlm_provider?: string;
+    question?: string;
+  }) =>
+    fetchJSON<ImpactIntelligenceReport>(`${API_BASE_URL}/impact/analyze`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  askImpactQuestion: (payload: {
+    question: string;
+    analysis_id?: string;
+    cyclone_name?: string;
+    location_name?: string;
+  }) =>
+    fetchJSON<ImpactQuestionResponse>(`${API_BASE_URL}/impact/question`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+
+  getImpactEvidence: (analysisId: string) =>
+    fetchJSON<Record<string, unknown>>(`${API_BASE_URL}/impact/evidence/${encodeURIComponent(analysisId)}`),
 };
+
+export interface LocationPreset {
+  id: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  state: string;
+  basin: string;
+  coastal_zone: string;
+}
+
+export interface CycloneLocationEncounter {
+  storm_id: string;
+  storm_name: string;
+  season: number;
+  closest_distance_km: number;
+  closest_approach_time: string;
+  closest_latitude: number;
+  closest_longitude: number;
+  wind_experienced_kts: number;
+  pressure_experienced_hpa: number | null;
+  category_at_encounter: number;
+  forward_speed_kmh: number;
+  total_track_points_in_radius: number;
+}
+
+export interface LocationSearchResponse {
+  location: {
+    name: string;
+    latitude: number;
+    longitude: number;
+    radius_km: number;
+    state?: string;
+    basin?: string;
+    coastal_zone?: string;
+  };
+  historical_encounter_frequency: {
+    total_qualifying_cyclones: number;
+    total_observations_in_radius: number;
+    observation_period: string;
+    distance_threshold_km: number;
+    highest_wind_encountered_kts: number;
+    lowest_pressure_encountered_hpa: number | null;
+    major_cyclone_encounters_count: number;
+    methodology_note: string;
+  };
+  climate_resilience_scenario: {
+    scenario_band: string;
+    scenario_description: string;
+    illustrative_trigger_status: string;
+    qualifying_historical_triggers_count: number;
+    exemplar_trigger_cyclone: string | null;
+    disclaimer: string;
+  };
+  encounters: CycloneLocationEncounter[];
+}
+
+export interface TelemetryFreshnessResponse {
+  nasa_earthdata: {
+    source: string;
+    status: string;
+    connected: boolean;
+    latest_observation_utc: string | null;
+    latest_granule_id: string | null;
+    retrieved_at_utc: string;
+    data_age_minutes: number | null;
+    latency_ms: number;
+    quality: string;
+    auth_user: string;
+  };
+  noaa_goes: {
+    source: string;
+    status: string;
+    connected: boolean;
+    endpoint: string;
+    latency_ms: number;
+    product: string;
+    auth_type: string;
+  };
+  basin_monitoring: {
+    target_basin: string;
+    active_systems_detected: number;
+    basin_status: string;
+    operating_mode: string;
+    archive_dataset: string;
+    verification_note: string;
+  };
+}
+
+export interface ImpactCycloneSummary {
+  name: string;
+  season: number;
+  storm_id: string;
+  has_optical_data: boolean;
+  has_sar_data: boolean;
+  landfall_location: string;
+}
+
+export interface ImpactLocationSummary {
+  name: string;
+  state: string;
+  latitude: number;
+  longitude: number;
+  coastal_proximity_km: number;
+  has_paired_observations: boolean;
+  cyclones_affected: string[];
+}
+
+export interface BeforeAfterPairInfo {
+  event_id: string;
+  cyclone_name: string;
+  location_name: string;
+  sensor_type: "OPTICAL" | "SAR";
+  pre_observation: {
+    source: string;
+    platform: string;
+    sensor: string;
+    acquisition_time: string;
+    bounds: {
+      min_latitude: number;
+      max_latitude: number;
+      min_longitude: number;
+      max_longitude: number;
+    };
+    cloud_coverage_percent: number | null;
+    resolution_meters: number;
+    file_id: string;
+    sha256_hash: string;
+  };
+  post_observation: {
+    source: string;
+    platform: string;
+    sensor: string;
+    acquisition_time: string;
+    bounds: {
+      min_latitude: number;
+      max_latitude: number;
+      min_longitude: number;
+      max_longitude: number;
+    };
+    cloud_coverage_percent: number | null;
+    resolution_meters: number;
+    file_id: string;
+    sha256_hash: string;
+  };
+  temporal_baseline_days: number;
+  spatial_overlap_percent: number;
+  optical_cloud_screen_passed: boolean;
+  co_registration_status: string;
+  pairing_valid: boolean;
+}
+
+export interface ChangeClassMetrics {
+  pixel_count: number;
+  percentage: number;
+  area_sq_km: number;
+}
+
+export interface ChangeDetectionSummary {
+  analysis_id: string;
+  methodology: string;
+  total_pixels: number;
+  pixel_resolution_meters: number;
+  total_area_sq_km: number;
+  classes: {
+    NO_SIGNIFICANT_CHANGE?: ChangeClassMetrics;
+    WATER_CHANGE?: ChangeClassMetrics;
+    VEGETATION_CHANGE?: ChangeClassMetrics;
+    SURFACE_CHANGE?: ChangeClassMetrics;
+    UNCERTAIN?: ChangeClassMetrics;
+    [key: string]: ChangeClassMetrics | undefined;
+  };
+  optical_indices?: {
+    mean_ndvi_pre: number;
+    mean_ndvi_post: number;
+    mean_delta_ndvi: number;
+    mean_ndwi_pre: number;
+    mean_ndwi_post: number;
+    mean_delta_ndwi: number;
+  };
+  sar_indices?: {
+    mean_vv_pre_db: number;
+    mean_vv_post_db: number;
+    mean_delta_vv_db: number;
+    inundation_pixel_count: number;
+    inundation_area_sq_km: number;
+  };
+  provenance_hash: string;
+  preview_grid?: number[][];
+}
+
+export interface EvidenceCitation {
+  sensor_source: string;
+  platform: string;
+  product_id: string;
+  pre_event_timestamp: string;
+  post_event_timestamp: string;
+  derived_layer_evaluated: string;
+  area_sq_km_affected: number;
+  bounding_box: {
+    min_latitude: number;
+    max_latitude: number;
+    min_longitude: number;
+    max_longitude: number;
+  };
+  data_quality_status: string;
+  sha256_hash: string;
+}
+
+export interface GroundedAnswerResult {
+  question: string;
+  answer_text: string;
+  observed_changes_summary: string;
+  citations: EvidenceCitation[];
+  confidence_level: "HIGH_CONFIDENCE" | "MEDIUM_CONFIDENCE" | "LOW_CONFIDENCE" | "INSUFFICIENT_DATA";
+  uncertainty_factors: string[];
+  scientific_disclaimer: string;
+  provider_type: string;
+  model_name: string;
+  model_version: string;
+  execution_timestamp: string;
+}
+
+export interface CycloneLandfallContext {
+  storm_id: string;
+  storm_name: string;
+  season: number;
+  landfall_timestamp: string;
+  landfall_latitude: number;
+  landfall_longitude: number;
+  landfall_wind_kts: number;
+  landfall_pressure_hpa: number | null;
+  distance_to_target_km: number;
+  intensity_category: number;
+}
+
+export interface ImpactIntelligenceReport {
+  analysis_id: string;
+  cyclone_name: string;
+  location_name: string;
+  sensor_type: "OPTICAL" | "SAR";
+  cyclone_context: CycloneLandfallContext;
+  pairing_metadata: BeforeAfterPairInfo;
+  change_summary: ChangeDetectionSummary;
+  ai_grounded_answer: GroundedAnswerResult;
+  uncertainty_status: "HIGH_CONFIDENCE" | "MEDIUM_CONFIDENCE" | "LOW_CONFIDENCE" | "INSUFFICIENT_DATA";
+  uncertainty_reasons: string[];
+  scientific_disclaimer: string;
+  provenance_lineage: {
+    entity_id: string;
+    pre_observation_hash: string;
+    post_observation_hash: string;
+    change_map_hash: string;
+    answer_hash: string;
+    software_version: string;
+    w3c_prov_type: string;
+  };
+}
+
+export interface ImpactQuestionResponse {
+  analysis_id: string;
+  question: string;
+  answer: GroundedAnswerResult;
+  retrieved_evidence_layers: string[];
+  cyclone_context?: CycloneLandfallContext;
+  change_metrics?: Record<string, ChangeClassMetrics>;
+  execution_time_ms: number;
+}
+
+export interface LocationImpactProfile {
+  location: {
+    name: string;
+    latitude: number;
+    longitude: number;
+    state?: string;
+    basin?: string;
+  };
+  historical_exposure: {
+    total_cyclones: number;
+    peak_wind_kts: number;
+    min_pressure_hpa: number | null;
+  };
+  satellite_archive_status: {
+    optical_observations_count: number;
+    sar_observations_count: number;
+    change_analyses_available: number;
+  };
+  recent_impact_events: Array<{
+    cyclone_name: string;
+    season: number;
+    closest_distance_km: number;
+    wind_experienced_kts: number;
+    has_satellite_change_analysis: boolean;
+  }>;
+}
+

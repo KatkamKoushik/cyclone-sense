@@ -79,8 +79,31 @@ class StormCentredExtractor:
                     break
 
             if lat_var is None or lon_var is None:
-                # If 1D lat/lon coordinates are not directly present, check if y/x fixed grid
-                # For fixed grid projections, we crop based on nearest index or fallback to full slice
+                # Check for GOES ABI Fixed Grid or other geostationary projection
+                if "goes_imager_projection" in ds.variables or ("x" in ds.variables and "y" in ds.variables):
+                    from backend.app.scientific.georeferencing import SatelliteGeoreferencer
+                    abi_res = SatelliteGeoreferencer.extract_reprojected_storm_tensor(
+                        filepath=path,
+                        center_lat=center_lat,
+                        center_lon=center_lon,
+                        radius_km=radius_km,
+                        target_size=(128, 128),
+                    )
+                    tensor = abi_res["tensor"]
+                    tensor_sha256 = ProvenanceTracker.hash_array(tensor)
+                    return {
+                        "tensor": tensor,
+                        "channel_names": abi_res["channels"],
+                        "channels_data": {c: tensor[i] for i, c in enumerate(abi_res["channels"])},
+                        "extracted_bounds": {
+                            "center_lat": center_lat,
+                            "center_lon": center_lon,
+                            "radius_km": radius_km,
+                            "source_type": abi_res["source_type"],
+                        },
+                        "spatial_shape": list(tensor.shape),
+                        "tensor_sha256": tensor_sha256,
+                    }
                 raise ValueError("Dataset does not contain recognizable latitude and longitude coordinate variables.")
 
             lats = np.array(lat_var[:], dtype=np.float32)

@@ -132,3 +132,90 @@ class AnalysisJob(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
+
+class SatelliteObservationRecord(Base):
+    __tablename__ = "satellite_observations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    observation_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    source: Mapped[str] = mapped_column(String(64), nullable=False)
+    platform: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    sensor: Mapped[str] = mapped_column(String(64), nullable=False)
+    sensor_type: Mapped[str] = mapped_column(String(32), nullable=False, index=True)  # OPTICAL, SAR
+    product: Mapped[str] = mapped_column(String(64), nullable=False)
+    acquisition_time: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    
+    bounds_json: Mapped[Dict[str, float]] = mapped_column(JSON, nullable=False, default=dict)
+    spatial_resolution_meters: Mapped[float] = mapped_column(Float, nullable=False)
+    bands_json: Mapped[List[str]] = mapped_column(JSON, nullable=False, default=list)
+    orbit_pass: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
+    cloud_coverage_pct: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    
+    file_granule_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    sha256_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    quality_status: Mapped[str] = mapped_column(String(32), nullable=False, default="PASSED")
+    storage_path: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class ImpactAnalysisRecord(Base):
+    __tablename__ = "impact_analyses"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    analysis_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True, index=True)
+    cyclone_id: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    cyclone_name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    location_name: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    
+    target_latitude: Mapped[float] = mapped_column(Float, nullable=False)
+    target_longitude: Mapped[float] = mapped_column(Float, nullable=False)
+    
+    pre_granule_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    post_granule_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    sensor_type: Mapped[str] = mapped_column(String(32), nullable=False)  # OPTICAL, SAR
+    
+    observed_severity: Mapped[str] = mapped_column(String(64), nullable=False)
+    confidence_level: Mapped[str] = mapped_column(String(32), nullable=False)
+    
+    total_area_km2: Mapped[float] = mapped_column(Float, nullable=False)
+    affected_area_km2: Mapped[float] = mapped_column(Float, nullable=False)
+    water_change_km2: Mapped[float] = mapped_column(Float, nullable=False)
+    vegetation_change_km2: Mapped[float] = mapped_column(Float, nullable=False)
+    surface_change_km2: Mapped[float] = mapped_column(Float, nullable=False)
+    uncertain_area_km2: Mapped[float] = mapped_column(Float, nullable=False)
+    
+    cyclone_metrics_json: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    executive_summary: Mapped[Text] = mapped_column(Text, nullable=False)
+    sha256_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class ChangeDetectionRecord(Base):
+    __tablename__ = "change_detection_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    analysis_id: Mapped[str] = mapped_column(String(128), ForeignKey("impact_analyses.analysis_id", ondelete="CASCADE"), nullable=False, index=True)
+    method: Mapped[str] = mapped_column(String(64), nullable=False)
+    statistics_json: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    metadata_json: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False, default=dict)
+    sha256_hash: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+
+class NaturalLanguageQueryRecord(Base):
+    __tablename__ = "nl_query_records"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    analysis_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    answer: Mapped[str] = mapped_column(Text, nullable=False)
+    citations_json: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, nullable=False, default=list)
+    model_name: Mapped[str] = mapped_column(String(64), nullable=False)
+    uncertainty_level: Mapped[str] = mapped_column(String(32), nullable=False)
+    
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
+
+

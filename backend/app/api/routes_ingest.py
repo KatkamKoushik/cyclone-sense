@@ -255,7 +255,13 @@ async def fetch_and_ingest_realtime_granule(
     """
     settings.DATA_RAW_DIR.mkdir(parents=True, exist_ok=True)
 
-    if payload.source.upper() in ["NOAA_GOES", "GOES"]:
+    granule_filename = Path(payload.granule_identifier).name
+    candidate_local_path = settings.DATA_RAW_DIR / granule_filename
+
+    if candidate_local_path.exists() and candidate_local_path.stat().st_size > 1000:
+        dest_file = candidate_local_path
+        source_origin = "LOCAL_CACHE_REUSED"
+    elif payload.source.upper() in ["NOAA_GOES", "GOES"]:
         adapter = GOESAdapter()
         try:
             dest_file = await adapter.fetch_granule(payload.granule_identifier, settings.DATA_RAW_DIR)

@@ -212,6 +212,34 @@ async def test_storm_catalog_and_track_endpoints():
         assert track_data["total_observations"] > 0
         assert "latitude" in track_data["observations"][0]
 
+        # Test location presets endpoint
+        presets_resp = await ac.get("/api/v1/storms/presets")
+        assert presets_resp.status_code == 200
+        presets_data = presets_resp.json()
+        assert len(presets_data) >= 8
+        assert any(p["id"] == "PURI" for p in presets_data)
+
+        # Test spatial location search for Puri
+        loc_resp = await ac.get("/api/v1/storms/search/location?query=Puri&radius_km=150")
+        assert loc_resp.status_code == 200
+        loc_data = loc_resp.json()
+        assert loc_data["location"]["name"] == "Puri, Odisha"
+        assert "historical_encounter_frequency" in loc_data
+        assert loc_data["historical_encounter_frequency"]["total_qualifying_cyclones"] > 0
+        assert "climate_resilience_scenario" in loc_data
+        assert "disclaimer" in loc_data["climate_resilience_scenario"]
+        assert len(loc_data["encounters"]) > 0
+        assert "closest_distance_km" in loc_data["encounters"][0]
+
+        # Test telemetry freshness endpoint
+        fresh_resp = await ac.get("/api/v1/system/telemetry-freshness")
+        assert fresh_resp.status_code == 200
+        fresh_data = fresh_resp.json()
+        assert "nasa_earthdata" in fresh_data
+        assert "noaa_goes" in fresh_data
+        assert "basin_monitoring" in fresh_data
+        assert fresh_data["basin_monitoring"]["operating_mode"] == "RETROSPECTIVE_GROUND_TRUTH_BENCHMARK"
+
 
 @pytest.mark.asyncio
 async def test_analysis_job_lifecycle():

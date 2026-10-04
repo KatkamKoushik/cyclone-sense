@@ -27,6 +27,13 @@ describe("CycloneSense Frontend API Client & Contracts", () => {
     assert.equal(typeof api.getEvaluationReport, "function");
     assert.equal(typeof api.listProvenance, "function");
     assert.equal(typeof api.getEntityProvenance, "function");
+    assert.equal(typeof api.listImpactCyclones, "function");
+    assert.equal(typeof api.listImpactLocations, "function");
+    assert.equal(typeof api.getLocationImpactProfile, "function");
+    assert.equal(typeof api.getBeforeAfterPair, "function");
+    assert.equal(typeof api.analyzeImpact, "function");
+    assert.equal(typeof api.askImpactQuestion, "function");
+    assert.equal(typeof api.getImpactEvidence, "function");
   });
 
   it("should correctly handle API network failure with informative error", async () => {
